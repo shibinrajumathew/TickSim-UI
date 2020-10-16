@@ -12,16 +12,17 @@
  * Copyright (c) 2020 VVEEO
  */
 import React from "react";
-import { BrowserRouter as Router, withRouter, Route } from "react-router-dom";
+import { BrowserRouter as Router, Route } from "react-router-dom";
+import { tsWrapper } from "../utils/tsWrapper";
 import HomeContainer from "../views/homePage/HomeContainer";
 import TradingPlatformContainer from "../views/tradingPlatformPage/TradingPlatformContainer";
 
 function basicController() {
   return (
     <Router>
-      <Route render={withRouter(HomeContainer)} exact path={"/home"} />
+      <Route render={tsWrapper(HomeContainer)} exact path={"/home"} />
       <Route
-        render={withRouter(TradingPlatformContainer)}
+        render={tsWrapper(TradingPlatformContainer)}
         exact
         path={"/tradingPlatform"}
       />

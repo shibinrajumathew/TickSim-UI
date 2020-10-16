@@ -15,11 +15,11 @@ import React from "react";
 import Rectangle from "./Rectangle";
 
 const ClipPathComponent = (props) => {
-  const { id, width, height, x } = props;
+  const { id, width, height, x, y } = props;
   return (
     <defs>
       <clipPath id={id}>
-        <Rectangle {...{ width, height, x }} />
+        <Rectangle {...{ width, height, x, y }} />
       </clipPath>
     </defs>
   );

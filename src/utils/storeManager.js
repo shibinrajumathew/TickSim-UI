@@ -14,13 +14,26 @@
 import { createStore } from "redux";
 import config from "../config";
 import reducers from "../views/common/stateManagers/reducers";
+import {
+  useSelector as tsComponentState,
+  useDispatch as tsComponentDispatch,
+} from "react-redux";
 
 const { devTool } = config;
-
+//react redux only store (not react-redux) starts
 const store = createStore(reducers, devTool);
 
-const tsState = store.getState();
+const tsContainerGetState = store.getState();
 
-const tsDispatch = (action) => store.dispatch(action);
+const tsContainerState = store.subscribe(() => tsContainerGetState);
 
-export { store, tsState, tsDispatch };
+const tsContainerDispatch = (action) => store.dispatch(action);
+
+export {
+  store,
+  tsContainerState,
+  tsContainerDispatch,
+  tsComponentDispatch,
+  tsComponentState,
+  tsContainerGetState,
+};

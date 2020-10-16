@@ -14,10 +14,10 @@
 import React from "react";
 
 const Rectangle = (props) => {
-  const { width, height, x } = props;
+  const { width, height, x, y } = props;
   return (
     <React.Fragment>
-      <rect width={width} height={height} x={x} />
+      <rect width={width} height={height} x={x} y={y} />
     </React.Fragment>
   );
 };

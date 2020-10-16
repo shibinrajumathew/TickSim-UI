@@ -12,18 +12,26 @@
  * Copyright (c) 2020 VVEEO
  */
 import React from "react";
+import {
+  tsComponentDispatch,
+  tsComponentState,
+} from "../../utils/storeManager";
 
-import { useSelector, useDispatch } from "react-redux";
-import increment from "../common/stateManagers/actions/increment";
+import { incrementX1Only } from "../common/stateManagers/actions/xRangeActions";
 
 const HomeComponent = (props) => {
-  const counter = useSelector((state) => state.counter);
-  const dispatch = useDispatch();
-  console.log("counter", counter);
+  const xRange = tsComponentState((state) => state.xRange);
+  const dispatch = tsComponentDispatch();
+  console.log("counter", xRange);
+
+  console.log("inside home component");
   return (
     <div>
-      <h1>Default title</h1>
-      <button onClick={() => dispatch(increment(10))}>counter test app</button>
+      <h1>Default title {xRange[0]}</h1>
+      <button onClick={() => dispatch(incrementX1Only([1, 0]))}>
+        {" "}
+        counter test app
+      </button>
     </div>
   );
 };

@@ -1,6 +1,5 @@
 export default function dataWebWorker() {
   onmessage = function (e) {
-    console.log("event inside webworker", e);
     let index = 0;
     let { candleSpeedInMilSec, dbData } = e.data;
     setInterval(() => {

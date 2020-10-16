@@ -11,9 +11,10 @@
  * All rights reserved.
  * Copyright (c) 2020 VVEEO
  */
-import counter from "./counter";
 import { combineReducers } from "redux";
+import counter from "./counter";
+import xRange from "./xRange";
 
-const reducers = combineReducers({ counter });
+const reducers = combineReducers({ xRange, counter });
 
 export default reducers;

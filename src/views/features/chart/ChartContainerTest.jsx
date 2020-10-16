@@ -41,7 +41,7 @@ import {
   getYScaleValues,
 } from "../../../utils/chartPointCalculator";
 import { chartColors, preDefinedColors } from "../../../utils/colors";
-import { getMAPoint, slicedData as dbData } from "../../../utils/dummyData";
+import { slicedData as dbData } from "../../../utils/dummyData";
 
 const { green, red, orange, lightGrey, lightYellow } = chartColors;
 const { darkBlue, black } = preDefinedColors;
@@ -80,14 +80,15 @@ let svgStyle = {
 };
 let highLowLineWidth = 1;
 
-let dataWebWorkerInstance = new webWorkerEnabler(dataWebWorker);
+let dataWebWorkerInstance = undefined;
+let dynamicDataWorkerInstance = undefined;
 
 class ChartContainer extends Component {
   constructor(props) {
     super();
     this.state = {
-      data: dbData.slice(0, 1),
-      tempData: dbData.slice(0, 1),
+      data: [],
+      tempData: [],
       nCandlesTotal: {
         totalHigh: 0,
         totalLow: 0,
@@ -97,32 +98,60 @@ class ChartContainer extends Component {
       },
       initialMAPath: [],
       nCandlesTotalArray: [],
-      nCandle: 25,
+      nCandle: -25,
       maNCandle: 5,
+      startCandle: 0,
+      endCandle: 1,
     };
   }
+  getDataWebWorkerInstance = () => {
+    if (dataWebWorkerInstance === undefined)
+      dataWebWorkerInstance = new webWorkerEnabler(dataWebWorker);
+  };
+  getDynamicDataWorkerInstance = () => {
+    if (dynamicDataWorkerInstance === undefined)
+      dynamicDataWorkerInstance = new webWorkerEnabler(dynamicDataWebWorker);
+  };
+  stopDynamicDataWorker = () => {
+    if (dynamicDataWorkerInstance !== undefined) {
+      dynamicDataWorkerInstance.terminate();
+      dynamicDataWorkerInstance = undefined;
+    }
+  };
+  stopDataWebWorkerInstance = () => {
+    if (dataWebWorkerInstance !== undefined) {
+      dataWebWorkerInstance.terminate();
+      dataWebWorkerInstance = undefined;
+    }
+  };
   componentDidMount() {
+    this.chartDraw();
+  }
+  chartDraw = () => {
+    let { data, nCandle, tempData, startCandle, endCandle } = this.state;
+    data = dbData.slice(startCandle, endCandle);
+    tempData = dbData.slice(startCandle, endCandle);
+    this.setState({ data, tempData });
     //dynamic data feed
-    let i = 6;
     let dbDataLength = dbData.length;
     let candleSpeedInSec = 1;
     let candleSpeedInMilSec = candleSpeedInSec * 1000;
     let dynamicCandleSpeedInMilSec = candleSpeedInMilSec * 0.3;
-    let { data, nCandlesTotalArray, nCandle, maNCandle, tempData } = this.state;
     // nCandlesTotalArray = getMAPoint();
-    data.map((data, i) => {
-      let { date } = data;
-      let dummyDataIndicator = {
-        totalHigh: 1,
-        totalLow: 1,
-        totalOpen: 1,
-        totalClose: 1,
-        date,
-        candleCount: 1,
-      };
-      nCandlesTotalArray = [...nCandlesTotalArray, dummyDataIndicator];
-      return nCandlesTotalArray;
-    });
+    // data.map((data, i) => {
+    //   let { date } = data;
+    //   let dummyDataIndicator = {
+    //     totalHigh: 1,
+    //     totalLow: 1,
+    //     totalOpen: 1,
+    //     totalClose: 1,
+    //     date,
+    //     candleCount: 1,
+    //   };
+    //   nCandlesTotalArray = [...nCandlesTotalArray, dummyDataIndicator];
+    //   return nCandlesTotalArray;
+    // });
+    if (dataWebWorkerInstance === undefined) this.getDataWebWorkerInstance();
 
     dataWebWorkerInstance.postMessage({ candleSpeedInMilSec, dbData });
     dataWebWorkerInstance.onmessage = (e) => {
@@ -130,10 +159,9 @@ class ChartContainer extends Component {
         data: { candleData, index },
       } = e;
       let { data } = this.state;
+      if (dynamicDataWorkerInstance === undefined)
+        this.getDynamicDataWorkerInstance();
 
-      let dynamicDataWorkerInstance = new webWorkerEnabler(
-        dynamicDataWebWorker
-      );
       dynamicDataWorkerInstance.postMessage({
         candleData,
         dynamicCandleSpeedInMilSec,
@@ -144,23 +172,23 @@ class ChartContainer extends Component {
         } = e;
         if (dynamicCandleCounter === 1) {
           tempData = [...tempData, dynamicCandleData];
-          data = tempData.slice(0).slice(-nCandle);
+          data = tempData.slice(0).slice(nCandle);
         }
         if (dynamicCandleCounter > 1) {
           tempData[index] = dynamicCandleData;
           let dynamicDataLastIndex = data.length - 1;
           data[dynamicDataLastIndex] = tempData[index];
+          if (tempData.length === dbDataLength)
+            this.stopDataWebWorkerInstance();
         }
         if (dynamicCandleCounter >= 3) {
-          dynamicDataWorkerInstance.terminate();
+          this.stopDynamicDataWorker();
           // data = data.slice(0).slice(-nCandle);
         }
         this.setState({ data });
       };
-
-      if (tempData.length === dbDataLength) dataWebWorkerInstance.terminate();
     };
-  }
+  };
   getLineProps = (candleData, xAxisBandWidth, yAxisFunction) => {
     const { open, close, high, low } = candleData;
     let linePoints = getLinePoints(high, low, xAxisBandWidth, yAxisFunction);
@@ -207,7 +235,7 @@ class ChartContainer extends Component {
   };
   getYScaleValuePosition = (value, index, yAxisFunction) => {
     return {
-      key: "yscale" + index,
+      key: "yScale" + index,
       transform: `translate(0,${yAxisFunction(value)})`,
     };
   };
@@ -243,7 +271,6 @@ class ChartContainer extends Component {
     const xAxisBandWidthMidPoint = xAxisBandWidth / 2;
     const yScaleValues = getYScaleValues(data);
     //props predefined
-
     let bottomAxisSVGGroupProps = {
       fill: "none",
       transform: `translate(0,${viewBoxHeight})`,
@@ -313,9 +340,21 @@ class ChartContainer extends Component {
       height: 300,
       x: 50,
     };
-
     return (
-      <SVGComponent {...svgStyle}>
+      <SVGComponent
+        {...svgStyle}
+        onWheel={(e) => {
+          let { deltaY } = e;
+          switch (true) {
+            case deltaY > 0:
+              break;
+            case deltaY < 0:
+              break;
+            default:
+              break;
+          }
+        }}
+      >
         <ClipPathComponent {...clipPathProps} />
         <SVGGroupComponent {...svgGroupRootStyle}>
           {data.map((candleData, i) => {

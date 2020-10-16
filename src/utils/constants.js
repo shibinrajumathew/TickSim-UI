@@ -14,8 +14,16 @@
 const constants = {
   stateManager: {
     actionType: {
-      INCREMENT: "INCREMENT",
-      DECREMENT: "DECREMENT",
+      INCREMENT: "increment",
+      DECREMENT: "decrement",
+      xRange: {
+        INCREMENT_X1_ONLY: "increment x1 only",
+        INCREMENT_X2_ONLY: "increment x2 only",
+        INCREMENT_X1_AND_X2: "increment x1 and x2",
+        DECREMENT_X1_ONLY: "decrement x1 only",
+        DECREMENT_X2_ONLY: "decrement x2 only",
+        DECREMENT_X1_AND_X2: "decrement x1 and x2",
+      },
     },
   },
 };
