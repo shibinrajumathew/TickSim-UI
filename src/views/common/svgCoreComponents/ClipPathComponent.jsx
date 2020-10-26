@@ -14,15 +14,15 @@ import React from "react";
  */
 import Rectangle from "./Rectangle";
 
-const ClipPathComponent = (props) => {
+const ClipPathComponent = React.forwardRef((props, ref) => {
   const { id, width, height, x, y } = props;
   return (
     <defs>
-      <clipPath id={id}>
+      <clipPath ref={ref} id={id}>
         <Rectangle {...{ width, height, x, y }} />
       </clipPath>
     </defs>
   );
-};
+});
 
 export default ClipPathComponent;

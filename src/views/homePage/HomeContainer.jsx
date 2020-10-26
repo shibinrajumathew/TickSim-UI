@@ -14,36 +14,26 @@
 import React, { Component } from "react";
 import HomeComponent from "./HomeComponent";
 class HomeContainer extends Component {
-  constructor(props, context) {
-    super();
-    this.state = {
-      testState: 0,
-    };
-  }
-
   render() {
-    let { xRange } = this.props.storeState;
-    console.log("xrange::", this.props.storeState);
+    const { storeState, incrementXRange, decrementXRange } = this.props;
+    let { xRange } = storeState;
     return (
       <div
         onWheel={(e) => {
           let { deltaY } = e;
           switch (true) {
             case deltaY > 0:
-              // this.setState({ testState: testState + 1 });
-              this.props.incrementX1Only(1);
+              incrementXRange([1, 0]);
               break;
             case deltaY < 0:
-              // this.setState({ testState: testState + 1 });
-
-              this.props.incrementX2Only(1);
+              decrementXRange([0, 1]);
               break;
             default:
               break;
           }
         }}
       >
-        <h1>testing state rendering {xRange}</h1>
+        <h1>testing state rendering {`${xRange[0]}, ${xRange[1]}`}</h1>
         {/* <button onClick={() => tsContainerDispatch(increment(2))}>
           counter test app
         </button> */}

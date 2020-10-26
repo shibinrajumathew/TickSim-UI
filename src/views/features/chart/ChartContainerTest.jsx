@@ -42,6 +42,9 @@ import {
 } from "../../../utils/chartPointCalculator";
 import { chartColors, preDefinedColors } from "../../../utils/colors";
 import { slicedData as dbData } from "../../../utils/dummyData";
+import { tsChildWrapper } from "../../../utils/tsWrapper";
+import CircleComponent from "../../common/svgCoreComponents/CircleComponent";
+import { drag } from "d3";
 
 const { green, red, orange, lightGrey, lightYellow } = chartColors;
 const { darkBlue, black } = preDefinedColors;
@@ -70,7 +73,6 @@ let viewBox = `${viewBoxX}, ${viewBoxY}, ${viewBoxWidth}, ${viewBoxHeight}`; //-
 let svgGroupRootStyle = {
   ...strokeShape,
   ...blackStroke,
-  clipPath: "url(#clip)",
 };
 let svgStyle = {
   width,
@@ -98,11 +100,21 @@ class ChartContainer extends Component {
       },
       initialMAPath: [],
       nCandlesTotalArray: [],
-      nCandle: -25,
+      nCandle: -100,
       maNCandle: 5,
       startCandle: 0,
       endCandle: 1,
+      mousePointX: 0,
+      mousePointY: 0,
+      xRange: [],
+      isDragging: false,
+      dragValue: 0,
+      trendLine: [],
+      horizontalLine: [],
     };
+    this.svgNode = React.createRef();
+    this.onKeyPress = this.onKeyPress.bind(this);
+    this.onMouseWheel = this.onMouseWheel.bind(this);
   }
   getDataWebWorkerInstance = () => {
     if (dataWebWorkerInstance === undefined)
@@ -126,7 +138,186 @@ class ChartContainer extends Component {
   };
   componentDidMount() {
     this.chartDraw();
+
+    document.addEventListener("keyup", this.onKeyPress, {
+      passive: false,
+    });
+    this.svgNode.current.addEventListener("wheel", this.onMouseWheel, {
+      passive: false,
+    });
   }
+  componentWillUnmount() {
+    document.removeEventListener("keyup", this.onKeyPress);
+    this.svgNode.current.removeEventListener("wheel", this.onMouseWheel);
+  }
+  isWithInSvgBoundary = (mousePointX, mousePointY) => {
+    let isWithInSvgBoundary = true;
+    if (mousePointX < 40 || mousePointX > 800) isWithInSvgBoundary = false;
+    // if(mousePointY //somecondition) isWithInSvgBoundary=false;
+    return isWithInSvgBoundary;
+  };
+  //event handlers
+  handleCrossWire = (e) => {
+    let { clientX, clientY } = e;
+    let svg = this.svgNode.current;
+    let pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    let svgPT = pt.matrixTransform(svg.getScreenCTM().inverse());
+    let mousePointX = svgPT.x;
+    let mousePointY = svgPT.y;
+    let isWithInSvgBoundary = this.isWithInSvgBoundary(
+      mousePointX,
+      mousePointY
+    );
+    if (isWithInSvgBoundary) {
+      this.setState({
+        mousePointX,
+        mousePointY,
+      });
+    }
+  };
+  onMouseWheel(e) {
+    //To Do remove below line after implementation
+    this.setState({
+      xRange: [
+        this.svgNode.current.clientWidth,
+        this.svgNode.current.clientHeight,
+      ],
+    });
+    e.preventDefault();
+    const { incrementX1Only, decrementX1Only } = this.props;
+    let { deltaY } = e;
+    switch (true) {
+      case deltaY > 0:
+        incrementX1Only();
+        break;
+      case deltaY < 0:
+        decrementX1Only();
+        break;
+      default:
+        break;
+    }
+  }
+  drawTrendLine() {
+    let { trendLine, mousePointX: x, mousePointY: y } = this.state;
+    console.log("received x, y", x, y);
+    let newLine = {
+      x1: x,
+      x2: x + 250,
+      y1: y,
+      y2: y + 10,
+    };
+    trendLine = [...trendLine, newLine];
+    this.setState({
+      trendLine,
+    });
+  }
+
+  drawHLine() {
+    let { horizontalLine, mousePointY: y } = this.state;
+    let newHLine = {
+      y,
+    };
+    horizontalLine = [...horizontalLine, newHLine];
+    this.setState({
+      horizontalLine,
+    });
+  }
+
+  onKeyPress(e) {
+    console.log("svg:", e);
+    const { key } = e;
+    switch (key) {
+      case "t":
+      case "T":
+        console.log("key t pressed");
+        this.drawTrendLine();
+        //draw trend line
+        break;
+      case "h":
+      case "H":
+        console.log("key h pressed");
+        this.drawHLine();
+        //draw horizontal line
+        break;
+
+      default:
+        break;
+    }
+  }
+  svgDragStart = (e) => {
+    let {
+      currentTarget: { tagName },
+    } = e;
+    if (tagName === "svg") {
+      let { isDragging, mousePointX } = this.state;
+      isDragging = true;
+      console.log("e.currentTarget", e.currentTarget.tagName);
+      this.setState({
+        isDragging,
+        xPositionBeforeDrag: mousePointX,
+        draggingElement: tagName,
+      });
+    }
+  };
+
+  svgDragEnd = (e) => {
+    console.log("svg drag end");
+    let { isDragging, xPositionBeforeDrag, draggingElement } = this.state;
+    isDragging = false;
+    if (draggingElement === "svg") {
+      console.log("draggingElement", draggingElement);
+      this.handleSvgDrag(xPositionBeforeDrag);
+    }
+    this.setState({ isDragging, draggingElement: null });
+  };
+  handleSvgDrag = (initialX) => {
+    let { mousePointX, mousePointY, dragValue } = this.state;
+    let isWithInSvgBoundary = this.isWithInSvgBoundary(
+      mousePointX,
+      mousePointY
+    );
+    if (isWithInSvgBoundary) {
+      dragValue += mousePointX - initialX;
+    }
+    this.setState({ dragValue });
+  };
+
+  trendLineDragStart = (position, index, e) => {
+    e.stopPropagation();
+    let {
+      currentTarget: { tagName },
+    } = e;
+    console.log("drag enabled", position, index);
+    this.setState({
+      draggingElement: tagName,
+      isDragging: true,
+    });
+  };
+  // rethink this logic or move it to svg drag, To do instead of svgDragEnd dragging move to onMouseMove with new flag
+  handleTrendLineDrag = (position, index, e) => {
+    // e.stopPropagation();
+    // const {
+    //   currentTarget: { tagName },
+    // } = e;
+    // let { draggingElement, trendLine, mousePointX, mousePointY } = this.state;
+    // console.log("mousePointX, mousePointY", mousePointX, mousePointY);
+    // console.log("before moving trendline", draggingElement, trendLine);
+    // if (draggingElement === "circle") {
+    //   console.log("inside drag circle");
+    //   trendLine[0]["x1"] = mousePointX;
+    //   trendLine[0]["y1"] = mousePointY;
+    // }
+    // console.log("inside trendLine drag end", trendLine);
+    // this.setState({
+    //   trendLine,
+    // });
+  };
+  trendLineDragEnd = (position, index, e) => {
+    console.log("before ending trendline drag");
+  };
+
   chartDraw = () => {
     let { data, nCandle, tempData, startCandle, endCandle } = this.state;
     data = dbData.slice(startCandle, endCandle);
@@ -134,23 +325,10 @@ class ChartContainer extends Component {
     this.setState({ data, tempData });
     //dynamic data feed
     let dbDataLength = dbData.length;
-    let candleSpeedInSec = 1;
+    let candleSpeedInSec = 2;
+
     let candleSpeedInMilSec = candleSpeedInSec * 1000;
-    let dynamicCandleSpeedInMilSec = candleSpeedInMilSec * 0.3;
-    // nCandlesTotalArray = getMAPoint();
-    // data.map((data, i) => {
-    //   let { date } = data;
-    //   let dummyDataIndicator = {
-    //     totalHigh: 1,
-    //     totalLow: 1,
-    //     totalOpen: 1,
-    //     totalClose: 1,
-    //     date,
-    //     candleCount: 1,
-    //   };
-    //   nCandlesTotalArray = [...nCandlesTotalArray, dummyDataIndicator];
-    //   return nCandlesTotalArray;
-    // });
+    let dynamicCandleSpeedInMilSec = candleSpeedInMilSec * 0.2; //always keep speed greater than 1 sec
     if (dataWebWorkerInstance === undefined) this.getDataWebWorkerInstance();
 
     dataWebWorkerInstance.postMessage({ candleSpeedInMilSec, dbData });
@@ -159,31 +337,51 @@ class ChartContainer extends Component {
         data: { candleData, index },
       } = e;
       let { data } = this.state;
+      let { high, low, open, close, date } = candleData;
+      //dynamic candle data
+      let firstDynamicCandle = {
+        date,
+        open,
+        close: low,
+        high: open,
+        low,
+      };
+      let secondDynamicCandle = {
+        ...firstDynamicCandle,
+        ...{ close: high, high },
+      };
+      let thirdDynamicCandle = { ...secondDynamicCandle, ...{ close } };
+
+      let dynamicData = [
+        firstDynamicCandle,
+        secondDynamicCandle,
+        thirdDynamicCandle,
+      ];
       if (dynamicDataWorkerInstance === undefined)
         this.getDynamicDataWorkerInstance();
 
       dynamicDataWorkerInstance.postMessage({
-        candleData,
+        dynamicData,
         dynamicCandleSpeedInMilSec,
+        index,
       });
       dynamicDataWorkerInstance.onmessage = (e) => {
         let {
-          data: { dynamicCandleData, dynamicCandleCounter },
+          data: { dynamicCandleData, dynamicCandleCounter, index },
         } = e;
-        if (dynamicCandleCounter === 1) {
+        if (dynamicCandleCounter === 0) {
           tempData = [...tempData, dynamicCandleData];
           data = tempData.slice(0).slice(nCandle);
         }
-        if (dynamicCandleCounter > 1) {
+        if (dynamicCandleCounter > 0) {
           tempData[index] = dynamicCandleData;
           let dynamicDataLastIndex = data.length - 1;
           data[dynamicDataLastIndex] = tempData[index];
           if (tempData.length === dbDataLength)
             this.stopDataWebWorkerInstance();
         }
-        if (dynamicCandleCounter >= 3) {
+        if (dynamicCandleCounter >= 2) {
           this.stopDynamicDataWorker();
-          // data = data.slice(0).slice(-nCandle);
         }
         this.setState({ data });
       };
@@ -219,11 +417,11 @@ class ChartContainer extends Component {
 
     return polygonProps;
   };
-  getXAxisTickPosition = (tick, midPoint, index, xAxisFunction) => {
+  getXAxisTickPosition = (tick, midPoint, index, xAxisFunction, dragValue) => {
     let xValue = xAxisFunction(tick) + midPoint;
     let returnProps = {
       key: "bottomAxis" + index,
-      transform: `translate(${xValue},0)`,
+      transform: `translate(${xValue + dragValue},0)`,
     };
     return returnProps;
   };
@@ -261,10 +459,19 @@ class ChartContainer extends Component {
     return { titleData };
   }
   render() {
-    const { data } = this.state;
+    const {
+      data,
+      mousePointX: mouseTrackHorizontalPoint,
+      mousePointY: mouseTrackVerticalPoint,
+      dragValue,
+      trendLine,
+      horizontalLine,
+    } = this.state;
+    const { storeState } = this.props;
+    let { xRange } = storeState;
     //d3 functions calculated data;
     const dateArray = getDateArray(data);
-    const xAxisFunction = getXAxisFunction(dateArray);
+    const xAxisFunction = getXAxisFunction(dateArray, xRange);
     const yAxisFunction = getYAxisFunction(data);
     const xAxisBandWidth = getXAxisBandWidth(xAxisFunction);
     const xTickValue = getXAxisTickValue(dateArray);
@@ -280,7 +487,7 @@ class ChartContainer extends Component {
     let bottomAxisPathProps = {
       className: "domain",
       ...lightYellowStroke,
-      d: `M40.5,6V0.5H${viewBoxWidth}`,
+      d: `M40.5,6V0.5H${viewBoxWidth + viewBoxX}`,
       strokeWidth: "1.5",
       strokeOpacity: "0.5",
     };
@@ -334,35 +541,95 @@ class ChartContainer extends Component {
       strokeWidth: "1.5",
       strokeOpacity: "0.5",
     };
-    let clipPathProps = {
-      id: "clip",
+    let candleStickClipId = "candleStickClip";
+    let candleStickClipPathProps = {
+      id: candleStickClipId,
       width: 800,
       height: 300,
       x: 50,
+      y: 0,
+    };
+    let xAxisClipId = "xAxisClip";
+    let xAxisClipPathProps = {
+      id: xAxisClipId,
+      width: 750,
+      height: 320,
+      x: 45,
+      y: -300,
+    };
+    let yAxisClipId = "yAxisClip";
+    let yAxisClipPathProps = {
+      id: yAxisClipId,
+      width: 850,
+      height: 300,
+      x: -50,
+      y: 0,
     };
     return (
       <SVGComponent
         {...svgStyle}
-        onWheel={(e) => {
-          let { deltaY } = e;
-          switch (true) {
-            case deltaY > 0:
-              break;
-            case deltaY < 0:
-              break;
-            default:
-              break;
-          }
-        }}
+        ref={this.svgNode}
+        onMouseMove={this.handleCrossWire}
+        onMouseDown={this.svgDragStart}
+        onMouseUp={this.svgDragEnd}
       >
-        <ClipPathComponent {...clipPathProps} />
-        <SVGGroupComponent {...svgGroupRootStyle}>
+        {/* To Do move yRange to redux state then check here to display none for crosshair */}
+        <LineComponent
+          {...{
+            x1: 40,
+            x2: 800,
+            y1: mouseTrackVerticalPoint,
+            y2: mouseTrackVerticalPoint,
+            style: {
+              stroke: "rgb(255,255,255)",
+              strokeWidth: 0.5,
+              strokeDasharray: 3,
+            },
+          }}
+        />
+        <LineComponent
+          {...{
+            x1: mouseTrackHorizontalPoint,
+            x2: mouseTrackHorizontalPoint,
+            y1: 0,
+            y2: 300,
+            style: {
+              display:
+                mouseTrackHorizontalPoint < xRange[0] ||
+                mouseTrackHorizontalPoint > xRange[1]
+                  ? "none"
+                  : null,
+              stroke: "rgb(255,255,255)",
+              strokeWidth: 0.5,
+              strokeDasharray: 3,
+            },
+          }}
+        />
+        {/* {Candle stick clip to hide overflow} */}
+        <ClipPathComponent {...candleStickClipPathProps} />
+        {/* {Candle + high-low line drawings} */}
+        <SVGGroupComponent
+          clipPath={`url(#${candleStickClipId})`}
+          {...svgGroupRootStyle}
+        >
           {data.map((candleData, i) => {
             const { open, close, high, low, date } = candleData;
             return (
               <SVGGroupComponent
-                transform={getTranslateXAxisPoint(xAxisFunction, candleData)}
+                transform={getTranslateXAxisPoint(
+                  xAxisFunction,
+                  candleData,
+                  dragValue
+                )}
                 key={i}
+                onMouseDown={(e) => {
+                  console.log(
+                    "inside on mouseDown",
+                    e,
+                    e.currentTarget,
+                    e.currentTarget.getAttribute("x1")
+                  );
+                }}
               >
                 <LineComponent
                   {...this.getLineProps(
@@ -387,48 +654,158 @@ class ChartContainer extends Component {
             );
           })}
         </SVGGroupComponent>
+        {/* {X Axis clip to hide overflow} */}
+        <ClipPathComponent {...xAxisClipPathProps} />
+        {/* {horizontal X axis drawings} */}
         <SVGGroupComponent {...bottomAxisSVGGroupProps}>
           <PathComponent {...bottomAxisPathProps} />
-          {xTickValue.map((tick, index) => {
-            return (
-              <SVGGroupComponent
-                {...this.getXAxisTickPosition(
-                  tick,
-                  xAxisBandWidthMidPoint,
-                  index,
-                  xAxisFunction
-                )}
-              >
-                <LineComponent {...tickVerticalLineProps} />
-                <LineComponent {...xAxisToTopLineProps} />
-                <TextComponent
-                  {...this.tickValueProps(tick, xTickValue[index - 1])}
-                />
-              </SVGGroupComponent>
-            );
-          })}
+          <SVGGroupComponent clipPath={`url(#${xAxisClipId})`}>
+            {xTickValue.map((tick, index) => {
+              return (
+                <SVGGroupComponent
+                  {...this.getXAxisTickPosition(
+                    tick,
+                    xAxisBandWidthMidPoint,
+                    index,
+                    xAxisFunction,
+                    dragValue
+                  )}
+                >
+                  <LineComponent {...xAxisToTopLineProps} />
+                  <LineComponent {...tickVerticalLineProps} />
+                  <TextComponent
+                    {...this.tickValueProps(tick, xTickValue[index - 1])}
+                  />
+                </SVGGroupComponent>
+              );
+            })}
+          </SVGGroupComponent>
         </SVGGroupComponent>
+        {/* {vertical Y axis drawings} */}
+        <ClipPathComponent {...yAxisClipPathProps} />
         <SVGGroupComponent {...yScaleSVGGroupProps}>
           <PathComponent {...yScalePathProps} />
-          {yScaleValues.map((value, index) => {
-            return (
-              <SVGGroupComponent
-                {...this.getYScaleValuePosition(value, index, yAxisFunction)}
-              >
-                <LineComponent {...yScaleToLeftLineProps} />
-                <LineComponent {...yScaleToRightLineProps} />
-                <TextComponent {...this.getScaleValuesProps(value)} />
-              </SVGGroupComponent>
-            );
-          })}
+          <SVGGroupComponent clipPath={`url(#${yAxisClipId})`}>
+            {yScaleValues.map((value, index) => {
+              return (
+                <SVGGroupComponent
+                  {...this.getYScaleValuePosition(value, index, yAxisFunction)}
+                >
+                  <LineComponent {...yScaleToLeftLineProps} />
+                  <LineComponent {...yScaleToRightLineProps} />
+                  <TextComponent {...this.getScaleValuesProps(value)} />
+                </SVGGroupComponent>
+              );
+            })}
+          </SVGGroupComponent>
         </SVGGroupComponent>
-        {}
-        <SVGGroupComponent fill="none" clipPath="url(#clip)">
+        {/* {moving average path} */}
+        <SVGGroupComponent fill="none" clipPath={`url(#${candleStickClipId})`}>
           <PathComponent {...yScaleMAPathProps} />
         </SVGGroupComponent>
+        {/* trendline */}
+        {trendLine.map((data, index) => {
+          let { x1, x2, y1, y2 } = data;
+          let positionX1 = "x1";
+          let positionX2 = "x2";
+          return (
+            <SVGGroupComponent key={"trendLine" + index}>
+              <LineComponent
+                {...{
+                  x1,
+                  x2,
+                  y1,
+                  y2,
+                  style: {
+                    stroke: "rgb(255,255,255)",
+                    strokeWidth: 2,
+                  },
+                }}
+              />
+              <CircleComponent
+                onMouseDown={this.trendLineDragStart.bind(
+                  this,
+                  positionX1,
+                  index
+                )}
+                onMouseMove={this.handleTrendLineDrag.bind(
+                  this,
+                  positionX1,
+                  index
+                )}
+                onMouseUp={this.trendLineDragEnd}
+                r="5"
+                cx={x1}
+                cy={y1}
+                style={{ fill: "white" }}
+              />
+              <CircleComponent
+                onMouseDown={this.trendLineDragStart.bind(
+                  this,
+                  positionX2,
+                  index
+                )}
+                onMouseMove={this.handleTrendLineDrag.bind(
+                  this,
+                  positionX2,
+                  index
+                )}
+                onMouseUp={this.trendLineDragEnd.bind(this, positionX2, index)}
+                r="5"
+                cx={x2}
+                cy={y2}
+                style={{ fill: "white" }}
+              />
+            </SVGGroupComponent>
+          );
+        })}
+        {/* horizontal line */}
+        {horizontalLine.map((data, index) => {
+          let { y } = data;
+          return (
+            <SVGGroupComponent key={"horizontalLine" + index}>
+              <LineComponent
+                {...{
+                  x1: 0,
+                  x2: 800,
+                  y1: y,
+                  y2: y,
+                  style: {
+                    stroke: "rgb(255,255,255)",
+                    strokeWidth: 2,
+                  },
+                }}
+              />
+              <CircleComponent
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  console.log("drag enabled", e.currentTarget.tagName);
+                  this.setState({
+                    draggingElement: e.currentTarget.tagName,
+                  });
+                }}
+                onMouseUp={(e) => {
+                  e.stopPropagation();
+                  console.log("drag end");
+                  this.setState({
+                    draggingElement: e.currentTarget.tagName,
+                  });
+                }}
+                onMouseMove={(e) => {
+                  e.stopPropagation();
+                  console.log("drag started", e.currentTarget.tagName);
+                }}
+                r="5"
+                cx={800 / 2}
+                cy={y}
+                style={{ fill: "white" }}
+              />
+            </SVGGroupComponent>
+          );
+        })}
       </SVGComponent>
     );
   }
 }
 
-export default ChartContainer;
+export default tsChildWrapper(ChartContainer);

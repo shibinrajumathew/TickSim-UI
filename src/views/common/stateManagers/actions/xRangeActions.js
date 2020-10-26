@@ -36,8 +36,8 @@ const getAction = (type, data) => {
 const incrementX1Only = (data) => getAction(INCREMENT_X1_ONLY, data);
 const incrementX2Only = (data) => getAction(INCREMENT_X2_ONLY, data);
 const incrementX1AndX2 = (data) => getAction(INCREMENT_X1_AND_X2, data);
-const decrementX1Only = (data) => getAction(DECREMENT_X2_ONLY, data);
-const decrementX2Only = (data) => getAction(DECREMENT_X1_ONLY, data);
+const decrementX1Only = (data) => getAction(DECREMENT_X1_ONLY, data);
+const decrementX2Only = (data) => getAction(DECREMENT_X2_ONLY, data);
 const decrementX1AndX2 = (data) => getAction(DECREMENT_X1_AND_X2, data);
 export {
   incrementX1Only,

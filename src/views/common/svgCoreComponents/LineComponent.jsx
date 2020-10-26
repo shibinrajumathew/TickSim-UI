@@ -13,8 +13,8 @@
  */
 import React from "react";
 
-const LineComponent = (props) => {
-  return <line {...props} />;
-};
+const LineComponent = React.forwardRef((props, ref) => {
+  return <line ref={ref} {...props} />;
+});
 
 export default LineComponent;

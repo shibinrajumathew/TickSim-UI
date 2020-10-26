@@ -12,26 +12,23 @@
  * Copyright (c) 2020 VVEEO
  */
 import React from "react";
-import {
-  tsComponentDispatch,
-  tsComponentState,
-} from "../../utils/storeManager";
+import { tsComponentState } from "../../utils/storeManager";
 
-import { incrementX1Only } from "../common/stateManagers/actions/xRangeActions";
+// import { incrementX1Only } from "../common/stateManagers/actions/xRangeActions";
 
 const HomeComponent = (props) => {
   const xRange = tsComponentState((state) => state.xRange);
-  const dispatch = tsComponentDispatch();
+  // const dispatch = tsComponentDispatch();
   console.log("counter", xRange);
 
   console.log("inside home component");
   return (
     <div>
       <h1>Default title {xRange[0]}</h1>
-      <button onClick={() => dispatch(incrementX1Only([1, 0]))}>
-        {" "}
+      {/* <button onClick={() => dispatch(incrementXRange([1, 0]))}> */}
+      {/* {" "}
         counter test app
-      </button>
+      </button> */}
     </div>
   );
 };

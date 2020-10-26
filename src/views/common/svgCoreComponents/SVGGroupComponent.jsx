@@ -13,8 +13,8 @@
  */
 import React from "react";
 
-const SVGGroupComponent = (props) => {
-  return <g {...props} />;
-};
+const SVGGroupComponent = React.forwardRef((props, ref) => {
+  return <g ref={ref} {...props} />;
+});
 
 export default SVGGroupComponent;

@@ -16,7 +16,7 @@ import { range as d3ArrayRange, min as d3Min, max as d3Max } from "d3-array";
 import { utcFormat as d3UTCFormat } from "d3-time-format";
 import { format as d3Format } from "d3-format";
 
-let xRange = [50, 800]; //change with margin left, right
+// let xRange = [50, 800]; //change with margin left, right
 let yRange = [275, 0]; //change with height, margin top, bottom
 let xIncrementSize = 5;
 let yScaleIncrementValue = 2;
@@ -26,7 +26,7 @@ const getDateArray = (data) => {
   return d3ArrayRange(dataArraySize).map((i) => new Date(data[i].date));
 };
 
-const getXAxisFunction = (dateArray) => {
+const getXAxisFunction = (dateArray, xRange) => {
   return d3ScaleBand()
     .domain(dateArray)
     .range(xRange)
@@ -44,8 +44,8 @@ const getYAxisFunction = (data) => {
 
 const getXAxisBandWidth = (xAxisFunction) => xAxisFunction.bandwidth();
 
-const getTranslateXAxisPoint = (xAxisFunction, d) =>
-  `translate(${xAxisFunction(new Date(d.date))} ${0})`;
+const getTranslateXAxisPoint = (xAxisFunction, d, dragValue) =>
+  `translate(${xAxisFunction(new Date(d.date)) + dragValue} ${0})`;
 
 const getTranslateYAxisPoint = (yAxisFunction, d) =>
   `translate( ${0}) ${yAxisFunction(new Date(d.date))}`;

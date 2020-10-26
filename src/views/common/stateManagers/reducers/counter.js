@@ -17,10 +17,16 @@ const {
 } = constants;
 const { INCREMENT, DECREMENT } = actionType;
 //REDUCER
-const counter = (state = 0, action) => {
+const counter = (counter = 0, action) => {
   const { type, payload } = action;
-  if (type === INCREMENT) return payload;
-  if (type === DECREMENT) return state - payload;
-  return state;
+  if (type === INCREMENT) {
+    counter = counter + payload;
+    return counter;
+  }
+  if (type === DECREMENT) {
+    counter -= payload;
+    return counter;
+  }
+  return counter;
 };
 export default counter;
