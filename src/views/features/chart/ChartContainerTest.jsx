@@ -138,24 +138,25 @@ class ChartContainer extends Component {
   };
   componentDidMount() {
     this.chartDraw();
+    const nonPassiveEvents = {
+      passive: false,
+    };
+    const svgNode = this.svgNode.current;
 
-    document.addEventListener("keyup", this.onKeyPress, {
-      passive: false,
-    });
-    this.svgNode.current.addEventListener("wheel", this.onMouseWheel, {
-      passive: false,
-    });
+    document.addEventListener("keyup", this.onKeyPress, nonPassiveEvents);
+    svgNode.addEventListener("wheel", this.onMouseWheel, nonPassiveEvents);
   }
+
   componentWillUnmount() {
     document.removeEventListener("keyup", this.onKeyPress);
     this.svgNode.current.removeEventListener("wheel", this.onMouseWheel);
   }
-  isWithInSvgBoundary = (mousePointX, mousePointY) => {
-    let isWithInSvgBoundary = true;
-    if (mousePointX < 40 || mousePointX > 800) isWithInSvgBoundary = false;
-    // if(mousePointY //somecondition) isWithInSvgBoundary=false;
-    return isWithInSvgBoundary;
-  };
+  // isWithInSvgBoundary = (mousePointX, mousePointY) => {
+  //   let isWithInSvgBoundary = true;
+  //   if (mousePointX < 40 || mousePointX > 800) isWithInSvgBoundary = false;
+  //   // if(mousePointY //somecondition) isWithInSvgBoundary=false;
+  //   return isWithInSvgBoundary;
+  // };
   //event handlers
   handleCrossWire = (e) => {
     let { clientX, clientY } = e;
@@ -166,16 +167,10 @@ class ChartContainer extends Component {
     let svgPT = pt.matrixTransform(svg.getScreenCTM().inverse());
     let mousePointX = svgPT.x;
     let mousePointY = svgPT.y;
-    let isWithInSvgBoundary = this.isWithInSvgBoundary(
+    this.setState({
       mousePointX,
-      mousePointY
-    );
-    if (isWithInSvgBoundary) {
-      this.setState({
-        mousePointX,
-        mousePointY,
-      });
-    }
+      mousePointY,
+    });
   };
   onMouseWheel(e) {
     //To Do remove below line after implementation
@@ -261,61 +256,82 @@ class ChartContainer extends Component {
       });
     }
   };
+  svgOnDragging = (xAxisBandWidth, e) => {
+    this.handleCrossWire(e);
+    console.log("svg drag end");
+    let {
+      isDragging,
+      xPositionBeforeDrag,
+      draggingElement,
+      draggingElementIndex,
+      draggingElementPosition,
+      trendLine,
+      mousePointX,
+      mousePointY,
+      draggingElementType,
+      horizontalLine,
+    } = this.state;
+    // isDragging = false;
+    if (draggingElement === "svg") {
+      console.log("draggingElement", draggingElement);
+      this.handleSvgDrag(xAxisBandWidth, xPositionBeforeDrag);
+    }
+    if (draggingElement === "circle" && draggingElementType === "trendLine") {
+      console.log(
+        "inside circle dragging of svg",
+        draggingElementIndex,
+        draggingElementPosition
+      );
+      let xPosition = draggingElementPosition[0];
+      let yPosition = draggingElementPosition[1];
+      trendLine[draggingElementIndex][xPosition] = mousePointX;
+      trendLine[draggingElementIndex][yPosition] = mousePointY;
+    }
+    if (
+      draggingElement === "circle" &&
+      draggingElementType === "horizontalLine"
+    ) {
+      horizontalLine[draggingElementIndex]["y"] = mousePointY;
+    }
+    this.setState({ trendLine });
+  };
 
   svgDragEnd = (e) => {
     console.log("svg drag end");
-    let { isDragging, xPositionBeforeDrag, draggingElement } = this.state;
-    isDragging = false;
-    if (draggingElement === "svg") {
-      console.log("draggingElement", draggingElement);
-      this.handleSvgDrag(xPositionBeforeDrag);
-    }
-    this.setState({ isDragging, draggingElement: null });
+    this.setState({
+      isDragging: false,
+      draggingElement: null,
+      draggingElementIndex: null,
+    });
   };
-  handleSvgDrag = (initialX) => {
+  handleSvgDrag = (xAxisBandWidth, initialX) => {
     let { mousePointX, mousePointY, dragValue } = this.state;
-    let isWithInSvgBoundary = this.isWithInSvgBoundary(
-      mousePointX,
-      mousePointY
-    );
-    if (isWithInSvgBoundary) {
-      dragValue += mousePointX - initialX;
-    }
-    this.setState({ dragValue });
+    const { storeState } = this.props;
+    let { xRange } = storeState;
+    if (initialX < mousePointX) dragValue += xAxisBandWidth * 0.5;
+    else dragValue -= xAxisBandWidth * 0.5;
+    console.log("dragValue", dragValue, xRange);
+    console.log("inside iif dragvalue between xrange");
+    this.setState({
+      dragValue,
+      xPositionBeforeDrag: mousePointX,
+    });
   };
 
-  trendLineDragStart = (position, index, e) => {
+  customLineDragStart = (type, position, index, e) => {
     e.stopPropagation();
     let {
       currentTarget: { tagName },
+      button,
     } = e;
-    console.log("drag enabled", position, index);
+    console.log("button clicked", button === 0 ? "left" : "right");
     this.setState({
       draggingElement: tagName,
+      draggingElementType: type,
       isDragging: true,
+      draggingElementIndex: index,
+      draggingElementPosition: position,
     });
-  };
-  // rethink this logic or move it to svg drag, To do instead of svgDragEnd dragging move to onMouseMove with new flag
-  handleTrendLineDrag = (position, index, e) => {
-    // e.stopPropagation();
-    // const {
-    //   currentTarget: { tagName },
-    // } = e;
-    // let { draggingElement, trendLine, mousePointX, mousePointY } = this.state;
-    // console.log("mousePointX, mousePointY", mousePointX, mousePointY);
-    // console.log("before moving trendline", draggingElement, trendLine);
-    // if (draggingElement === "circle") {
-    //   console.log("inside drag circle");
-    //   trendLine[0]["x1"] = mousePointX;
-    //   trendLine[0]["y1"] = mousePointY;
-    // }
-    // console.log("inside trendLine drag end", trendLine);
-    // this.setState({
-    //   trendLine,
-    // });
-  };
-  trendLineDragEnd = (position, index, e) => {
-    console.log("before ending trendline drag");
   };
 
   chartDraw = () => {
@@ -565,11 +581,14 @@ class ChartContainer extends Component {
       x: -50,
       y: 0,
     };
+
+    let position1 = ["x1", "y1"];
+    let position2 = ["x2", "y2"];
     return (
       <SVGComponent
         {...svgStyle}
         ref={this.svgNode}
-        onMouseMove={this.handleCrossWire}
+        onMouseMove={this.svgOnDragging.bind(this, xAxisBandWidth)}
         onMouseDown={this.svgDragStart}
         onMouseUp={this.svgDragEnd}
       >
@@ -706,8 +725,6 @@ class ChartContainer extends Component {
         {/* trendline */}
         {trendLine.map((data, index) => {
           let { x1, x2, y1, y2 } = data;
-          let positionX1 = "x1";
-          let positionX2 = "x2";
           return (
             <SVGGroupComponent key={"trendLine" + index}>
               <LineComponent
@@ -723,34 +740,24 @@ class ChartContainer extends Component {
                 }}
               />
               <CircleComponent
-                onMouseDown={this.trendLineDragStart.bind(
+                onMouseDown={this.customLineDragStart.bind(
                   this,
-                  positionX1,
+                  "trendLine",
+                  position1,
                   index
                 )}
-                onMouseMove={this.handleTrendLineDrag.bind(
-                  this,
-                  positionX1,
-                  index
-                )}
-                onMouseUp={this.trendLineDragEnd}
                 r="5"
                 cx={x1}
                 cy={y1}
                 style={{ fill: "white" }}
               />
               <CircleComponent
-                onMouseDown={this.trendLineDragStart.bind(
+                onMouseDown={this.customLineDragStart.bind(
                   this,
-                  positionX2,
+                  "trendLine",
+                  position2,
                   index
                 )}
-                onMouseMove={this.handleTrendLineDrag.bind(
-                  this,
-                  positionX2,
-                  index
-                )}
-                onMouseUp={this.trendLineDragEnd.bind(this, positionX2, index)}
                 r="5"
                 cx={x2}
                 cy={y2}
@@ -777,24 +784,12 @@ class ChartContainer extends Component {
                 }}
               />
               <CircleComponent
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  console.log("drag enabled", e.currentTarget.tagName);
-                  this.setState({
-                    draggingElement: e.currentTarget.tagName,
-                  });
-                }}
-                onMouseUp={(e) => {
-                  e.stopPropagation();
-                  console.log("drag end");
-                  this.setState({
-                    draggingElement: e.currentTarget.tagName,
-                  });
-                }}
-                onMouseMove={(e) => {
-                  e.stopPropagation();
-                  console.log("drag started", e.currentTarget.tagName);
-                }}
+                onMouseDown={this.customLineDragStart.bind(
+                  this,
+                  "horizontalLine",
+                  position1,
+                  index
+                )}
                 r="5"
                 cx={800 / 2}
                 cy={y}
