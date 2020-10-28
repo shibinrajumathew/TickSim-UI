@@ -1,7 +1,7 @@
 export default function dataWebWorker() {
   onmessage = function (e) {
-    let index = 0;
-    let { candleSpeedInMilSec, dbData } = e.data;
+    let { candleSpeedInMilSec, dbData, lastIndexAfterSlice } = e.data;
+    let index = lastIndexAfterSlice;
     setInterval(() => {
       index += 1;
       let candleData = dbData[index];

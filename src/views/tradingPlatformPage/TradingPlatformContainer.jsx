@@ -20,11 +20,31 @@ import {
 } from "../common/cssFrameworkComponents/CoreComponents";
 
 class TradingPlatformContainer extends Component {
+  constructor(props) {
+    super();
+    this.state = {
+      startCandle: 0,
+      endCandle: 1,
+      playChart: true,
+    };
+    this.setChartPlay = this.setChartPlay.bind(this);
+  }
+  setCandleIndex = (endCandle = 1, startCandle = 0) => {
+    console.log("endCandle::::inside parent container", endCandle);
+    this.setState({
+      startCandle,
+      endCandle,
+    });
+  };
+  setChartPlay = (playChart) => {
+    this.setState({
+      playChart,
+    });
+  };
+
   render() {
-    /* let backBgColor = {
-      margin: "0px",
-      backgroundColor: "#010715",
-    }; */
+    const { startCandle, endCandle, playChart } = this.state;
+    const candleIndex = { startCandle, endCandle };
     return (
       <Container className="mx-auto">
         <Col className="mt-5 px-auto">
@@ -32,7 +52,12 @@ class TradingPlatformContainer extends Component {
         </Col>
         <Col className="my-5">
           <Row>
-            <ChartContainer />
+            <ChartContainer
+              playChart={playChart}
+              candleIndex={candleIndex}
+              setCandleIndex={this.setCandleIndex}
+              setChartPlay={this.setChartPlay}
+            />
           </Row>
         </Col>
       </Container>

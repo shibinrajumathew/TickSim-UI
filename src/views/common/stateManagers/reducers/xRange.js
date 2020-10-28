@@ -24,15 +24,14 @@ const {
   },
 } = actionType;
 //REDUCER
-const xRange = (xRangeState = [40, 800], action) => {
+const xRange = (xRangeState = [40, 840], action) => {
   const { type } = action;
-  console.log("xRangeState init", xRangeState, action);
   //Increment
   if (type === INCREMENT_X1_ONLY) {
     let response = [...xRangeState];
-    response[0] += 100;
+    response[0] += Math.abs(response[0] - response[1]) * 0.5;
     if (Math.abs(response[0] - response[1]) < 600) return xRangeState;
-    console.log("inside 1", xRangeState);
+    console.log("inside 1", response[0]);
     return response;
   }
   if (type === INCREMENT_X2_ONLY) {
@@ -49,8 +48,13 @@ const xRange = (xRangeState = [40, 800], action) => {
   //Decrement
   if (type === DECREMENT_X1_ONLY) {
     let response = [...xRangeState];
-    response[0] -= 100;
-    if (Math.abs(response[0] - response[1]) < 600) return xRangeState;
+    response[0] -= Math.abs(response[0] - response[1]) * 0.5;
+    console.log(
+      "response[0]",
+      response[0],
+      Math.abs(response[0] - response[1])
+    );
+    // if (Math.abs(response[0] - response[1]) < 600) return xRangeState;
     return response;
   }
   if (type === DECREMENT_X2_ONLY) {

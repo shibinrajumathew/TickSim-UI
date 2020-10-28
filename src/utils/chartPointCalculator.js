@@ -132,44 +132,6 @@ const getPercentageValue = (y0, y1) => {
   return format((y1 - y0) / y0);
 };
 
-const getMAPathPoints = (
-  xAxisFunction,
-  yAxisFunction,
-  lineTotalValue,
-  MAType = "DEFAULT"
-) => {
-  const {
-    totalHigh,
-    totalLow,
-    totalOpen,
-    totalClose,
-    date,
-    candleCount,
-  } = lineTotalValue;
-  let newPoint = 0;
-  switch (MAType) {
-    case "HLC":
-      newPoint =
-        (totalHigh / candleCount +
-          totalLow / candleCount +
-          totalClose / candleCount) /
-        3;
-      break;
-    case "OC":
-      newPoint = (totalOpen / candleCount + totalClose / candleCount) / 2;
-      break;
-
-    default:
-      newPoint = (totalHigh / candleCount + totalLow / candleCount) / 2;
-      break;
-  }
-  let newPath = {
-    x: xAxisFunction(new Date(date)) + getXAxisBandWidth(xAxisFunction) / 2,
-    y: yAxisFunction(newPoint),
-  };
-  return newPath;
-};
-
 export {
   getDateArray,
   getXAxisFunction,
@@ -186,5 +148,4 @@ export {
   getPercentageValue,
   getLongDate,
   getShortDate,
-  getMAPathPoints,
 };

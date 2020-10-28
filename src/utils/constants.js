@@ -26,5 +26,15 @@ const constants = {
       },
     },
   },
+  EVENTS: {
+    BLUR: "blur",
+    FOCUS: "focus",
+    KEYUP: "keyup",
+    WHEEL: "wheel",
+    MOUSE_DOWN: "mousedown",
+    MOUSE_MOVE: "mousemove",
+    MOUSE_UP: "mouseup",
+    CONTEXT_MENU: "contextmenu",
+  },
 };
 export default constants;

@@ -25,7 +25,6 @@ import webWorkerEnabler from "../../../utils/WebWorkerEnabler";
 import dataWebWorker from "../../../utils/dataWebWorker";
 
 import {
-  getMAPathPoints,
   getDateArray,
   getFormattedDate,
   getFormattedValue,
@@ -44,8 +43,20 @@ import { chartColors, preDefinedColors } from "../../../utils/colors";
 import { slicedData as dbData } from "../../../utils/dummyData";
 import { tsChildWrapper } from "../../../utils/tsWrapper";
 import CircleComponent from "../../common/svgCoreComponents/CircleComponent";
-import { drag } from "d3";
+import constants from "../../../utils/constants";
 
+const {
+  EVENTS: {
+    BLUR,
+    FOCUS,
+    KEYUP,
+    WHEEL,
+    MOUSE_DOWN,
+    MOUSE_MOVE,
+    MOUSE_UP,
+    CONTEXT_MENU,
+  },
+} = constants;
 const { green, red, orange, lightGrey, lightYellow } = chartColors;
 const { darkBlue, black } = preDefinedColors;
 //predefined styles
@@ -82,28 +93,17 @@ let svgStyle = {
 };
 let highLowLineWidth = 1;
 
-let dataWebWorkerInstance = undefined;
+let singleCandleWebWorkerInstance = undefined;
 let dynamicDataWorkerInstance = undefined;
 
 class ChartContainer extends Component {
   constructor(props) {
+    const { playChart } = props;
     super();
     this.state = {
       data: [],
       tempData: [],
-      nCandlesTotal: {
-        totalHigh: 0,
-        totalLow: 0,
-        totalOpen: 0,
-        totalClose: 0,
-        date: null,
-      },
-      initialMAPath: [],
-      nCandlesTotalArray: [],
       nCandle: -100,
-      maNCandle: 5,
-      startCandle: 0,
-      endCandle: 1,
       mousePointX: 0,
       mousePointY: 0,
       xRange: [],
@@ -111,14 +111,15 @@ class ChartContainer extends Component {
       dragValue: 0,
       trendLine: [],
       horizontalLine: [],
+      playChart,
     };
     this.svgNode = React.createRef();
     this.onKeyPress = this.onKeyPress.bind(this);
     this.onMouseWheel = this.onMouseWheel.bind(this);
   }
-  getDataWebWorkerInstance = () => {
-    if (dataWebWorkerInstance === undefined)
-      dataWebWorkerInstance = new webWorkerEnabler(dataWebWorker);
+  getSingleCandleDataWebWorkerInstance = () => {
+    if (singleCandleWebWorkerInstance === undefined)
+      singleCandleWebWorkerInstance = new webWorkerEnabler(dataWebWorker);
   };
   getDynamicDataWorkerInstance = () => {
     if (dynamicDataWorkerInstance === undefined)
@@ -130,10 +131,10 @@ class ChartContainer extends Component {
       dynamicDataWorkerInstance = undefined;
     }
   };
-  stopDataWebWorkerInstance = () => {
-    if (dataWebWorkerInstance !== undefined) {
-      dataWebWorkerInstance.terminate();
-      dataWebWorkerInstance = undefined;
+  stopSingleCandleDataWebWorkerInstance = () => {
+    if (singleCandleWebWorkerInstance !== undefined) {
+      singleCandleWebWorkerInstance.terminate();
+      singleCandleWebWorkerInstance = undefined;
     }
   };
   componentDidMount() {
@@ -143,21 +144,69 @@ class ChartContainer extends Component {
     };
     const svgNode = this.svgNode.current;
 
-    document.addEventListener("keyup", this.onKeyPress, nonPassiveEvents);
-    svgNode.addEventListener("wheel", this.onMouseWheel, nonPassiveEvents);
+    window.addEventListener(BLUR, this.onBlur);
+    window.addEventListener(FOCUS, this.onFocus);
+    document.addEventListener(KEYUP, this.onKeyPress, nonPassiveEvents);
+    svgNode.addEventListener(WHEEL, this.onMouseWheel, nonPassiveEvents);
+    svgNode.addEventListener(MOUSE_DOWN, this.svgDragStart, nonPassiveEvents);
+    svgNode.addEventListener(MOUSE_MOVE, this.svgOnDragging, nonPassiveEvents);
+    svgNode.addEventListener(MOUSE_UP, this.svgDragEnd, nonPassiveEvents);
+    svgNode.addEventListener(
+      CONTEXT_MENU,
+      this.handleContextMenu,
+      nonPassiveEvents
+    );
   }
 
   componentWillUnmount() {
-    document.removeEventListener("keyup", this.onKeyPress);
-    this.svgNode.current.removeEventListener("wheel", this.onMouseWheel);
+    const svgNode = this.svgNode.current;
+    window.removeEventListener(BLUR, this.onBlur);
+    window.removeEventListener(FOCUS, this.onFocus);
+    document.removeEventListener(KEYUP, this.onKeyPress);
+    svgNode.removeEventListener(WHEEL, this.onMouseWheel);
+    svgNode.addEventListener(MOUSE_DOWN, this.svgDragStart);
+    svgNode.addEventListener(MOUSE_MOVE, this.svgOnDragging);
+    svgNode.addEventListener(MOUSE_UP, this.svgDragEnd);
+    svgNode.removeEventListener(CONTEXT_MENU, this.handleContextMenu);
   }
-  // isWithInSvgBoundary = (mousePointX, mousePointY) => {
-  //   let isWithInSvgBoundary = true;
-  //   if (mousePointX < 40 || mousePointX > 800) isWithInSvgBoundary = false;
-  //   // if(mousePointY //somecondition) isWithInSvgBoundary=false;
-  //   return isWithInSvgBoundary;
-  // };
+
+  static getDerivedStateFromProps(nextProps, prevState) {
+    const { playChart } = nextProps;
+    return {
+      playChart,
+    };
+  }
+  componentDidUpdate(prevProps, prevState) {
+    const { playChart: prevPlayChart } = prevProps;
+    const { playChart: nextPlayChart } = this.props;
+    if (prevPlayChart !== nextPlayChart && nextPlayChart) {
+      this.chartDraw();
+    }
+  }
+  pauseChart = () => {
+    const { data } = this.state;
+    const lastCandleIndex = data.length;
+    this.props.setCandleIndex(lastCandleIndex);
+    this.props.setChartPlay(false);
+    this.stopDynamicDataWorker();
+    this.stopSingleCandleDataWebWorkerInstance();
+  };
+  resumeChart = () => {
+    this.props.setChartPlay(true);
+  };
+
   //event handlers
+  onBlur = () => {
+    // To Do pause timer and stop char draw
+    this.pauseChart();
+  };
+  onFocus = () => {
+    this.resumeChart();
+  };
+  handleContextMenu = (e) => {
+    e.preventDefault();
+    return false;
+  };
   handleCrossWire = (e) => {
     let { clientX, clientY } = e;
     let svg = this.svgNode.current;
@@ -173,13 +222,6 @@ class ChartContainer extends Component {
     });
   };
   onMouseWheel(e) {
-    //To Do remove below line after implementation
-    this.setState({
-      xRange: [
-        this.svgNode.current.clientWidth,
-        this.svgNode.current.clientHeight,
-      ],
-    });
     e.preventDefault();
     const { incrementX1Only, decrementX1Only } = this.props;
     let { deltaY } = e;
@@ -196,7 +238,6 @@ class ChartContainer extends Component {
   }
   drawTrendLine() {
     let { trendLine, mousePointX: x, mousePointY: y } = this.state;
-    console.log("received x, y", x, y);
     let newLine = {
       x1: x,
       x2: x + 250,
@@ -221,7 +262,6 @@ class ChartContainer extends Component {
   }
 
   onKeyPress(e) {
-    console.log("svg:", e);
     const { key } = e;
     switch (key) {
       case "t":
@@ -244,11 +284,16 @@ class ChartContainer extends Component {
   svgDragStart = (e) => {
     let {
       currentTarget: { tagName },
+      button,
     } = e;
+    if (button !== 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
     if (tagName === "svg") {
       let { isDragging, mousePointX } = this.state;
       isDragging = true;
-      console.log("e.currentTarget", e.currentTarget.tagName);
       this.setState({
         isDragging,
         xPositionBeforeDrag: mousePointX,
@@ -256,11 +301,10 @@ class ChartContainer extends Component {
       });
     }
   };
-  svgOnDragging = (xAxisBandWidth, e) => {
+  svgOnDragging = (e) => {
+    e.preventDefault();
     this.handleCrossWire(e);
-    console.log("svg drag end");
     let {
-      isDragging,
       xPositionBeforeDrag,
       draggingElement,
       draggingElementIndex,
@@ -273,15 +317,9 @@ class ChartContainer extends Component {
     } = this.state;
     // isDragging = false;
     if (draggingElement === "svg") {
-      console.log("draggingElement", draggingElement);
-      this.handleSvgDrag(xAxisBandWidth, xPositionBeforeDrag);
+      this.handleSvgDrag(xPositionBeforeDrag);
     }
     if (draggingElement === "circle" && draggingElementType === "trendLine") {
-      console.log(
-        "inside circle dragging of svg",
-        draggingElementIndex,
-        draggingElementPosition
-      );
       let xPosition = draggingElementPosition[0];
       let yPosition = draggingElementPosition[1];
       trendLine[draggingElementIndex][xPosition] = mousePointX;
@@ -297,21 +335,28 @@ class ChartContainer extends Component {
   };
 
   svgDragEnd = (e) => {
-    console.log("svg drag end");
     this.setState({
       isDragging: false,
       draggingElement: null,
       draggingElementIndex: null,
     });
   };
-  handleSvgDrag = (xAxisBandWidth, initialX) => {
-    let { mousePointX, mousePointY, dragValue } = this.state;
+  handleSvgDrag = (initialX) => {
+    let { mousePointX, dragValue } = this.state;
     const { storeState } = this.props;
     let { xRange } = storeState;
-    if (initialX < mousePointX) dragValue += xAxisBandWidth * 0.5;
-    else dragValue -= xAxisBandWidth * 0.5;
-    console.log("dragValue", dragValue, xRange);
-    console.log("inside iif dragvalue between xrange");
+    if (initialX < mousePointX)
+      dragValue +=
+        Math.abs(xRange[0] - xRange[1]) *
+        (Math.abs(mousePointX - initialX) / 100);
+    else
+      dragValue -=
+        Math.abs(xRange[0] - xRange[1]) *
+        (Math.abs(mousePointX - initialX) / 100);
+    if (dragValue > Math.abs(xRange[0] - xRange[1]))
+      dragValue = Math.abs(xRange[0] - xRange[1]);
+    if (dragValue < -Math.abs(xRange[0] - xRange[1]))
+      dragValue = -Math.abs(xRange[0] - xRange[1]);
     this.setState({
       dragValue,
       xPositionBeforeDrag: mousePointX,
@@ -324,31 +369,68 @@ class ChartContainer extends Component {
       currentTarget: { tagName },
       button,
     } = e;
-    console.log("button clicked", button === 0 ? "left" : "right");
+    let { trendLine, horizontalLine, isDragging } = this.state;
+    let draggingElement = tagName;
+    switch (type) {
+      case "trendLine":
+        if (button === 2) {
+          e.preventDefault();
+          trendLine = trendLine.filter(
+            (data, arrayIndex) => arrayIndex !== index
+          );
+          isDragging = false;
+          draggingElement = null;
+        }
+        break;
+      case "horizontalLine":
+        if (button === 2) {
+          e.preventDefault();
+          horizontalLine = horizontalLine.filter(
+            (data, arrayIndex) => arrayIndex !== index
+          );
+          isDragging = false;
+          draggingElement = null;
+        }
+        break;
+
+      default:
+        break;
+    }
     this.setState({
-      draggingElement: tagName,
+      trendLine,
+      horizontalLine,
+      draggingElement,
       draggingElementType: type,
-      isDragging: true,
+      isDragging,
       draggingElementIndex: index,
       draggingElementPosition: position,
     });
   };
 
   chartDraw = () => {
-    let { data, nCandle, tempData, startCandle, endCandle } = this.state;
+    let { data, nCandle, tempData, playChart } = this.state;
+    const {
+      candleIndex: { startCandle, endCandle },
+    } = this.props;
     data = dbData.slice(startCandle, endCandle);
     tempData = dbData.slice(startCandle, endCandle);
     this.setState({ data, tempData });
     //dynamic data feed
     let dbDataLength = dbData.length;
     let candleSpeedInSec = 2;
+    let lastIndexAfterSlice = data.length - 1;
 
     let candleSpeedInMilSec = candleSpeedInSec * 1000;
     let dynamicCandleSpeedInMilSec = candleSpeedInMilSec * 0.2; //always keep speed greater than 1 sec
-    if (dataWebWorkerInstance === undefined) this.getDataWebWorkerInstance();
+    if (singleCandleWebWorkerInstance === undefined)
+      this.getSingleCandleDataWebWorkerInstance();
 
-    dataWebWorkerInstance.postMessage({ candleSpeedInMilSec, dbData });
-    dataWebWorkerInstance.onmessage = (e) => {
+    singleCandleWebWorkerInstance.postMessage({
+      candleSpeedInMilSec,
+      dbData,
+      lastIndexAfterSlice,
+    });
+    singleCandleWebWorkerInstance.onmessage = (e) => {
       let {
         data: { candleData, index },
       } = e;
@@ -393,11 +475,15 @@ class ChartContainer extends Component {
           tempData[index] = dynamicCandleData;
           let dynamicDataLastIndex = data.length - 1;
           data[dynamicDataLastIndex] = tempData[index];
-          if (tempData.length === dbDataLength)
-            this.stopDataWebWorkerInstance();
         }
         if (dynamicCandleCounter >= 2) {
           this.stopDynamicDataWorker();
+          if (playChart) {
+            if (tempData.length === dbDataLength)
+              this.stopSingleCandleDataWebWorkerInstance();
+          } else {
+            this.stopSingleCandleDataWebWorkerInstance();
+          }
         }
         this.setState({ data });
       };
@@ -483,6 +569,7 @@ class ChartContainer extends Component {
       trendLine,
       horizontalLine,
     } = this.state;
+
     const { storeState } = this.props;
     let { xRange } = storeState;
     //d3 functions calculated data;
@@ -540,17 +627,7 @@ class ChartContainer extends Component {
       strokeWidth: "0.6",
       strokeOpacity: "0.2",
     };
-    let getMAPoint = () => {
-      let { nCandlesTotalArray, data } = this.state;
-      let path = null;
-      const yAxisFunction = getYAxisFunction(data);
-      nCandlesTotalArray.map((data, i) => {
-        let newMAPoint = getMAPathPoints(xAxisFunction, yAxisFunction, data);
-        path = `${i === 0 ? "M" : path + "L"} ${newMAPoint.x} ${newMAPoint.y}`;
-        return path;
-      });
-      return path;
-    };
+    let getMAPoint = () => {};
     let yScaleMAPathProps = {
       ...lightYellowStroke,
       d: getMAPoint(),
@@ -585,13 +662,7 @@ class ChartContainer extends Component {
     let position1 = ["x1", "y1"];
     let position2 = ["x2", "y2"];
     return (
-      <SVGComponent
-        {...svgStyle}
-        ref={this.svgNode}
-        onMouseMove={this.svgOnDragging.bind(this, xAxisBandWidth)}
-        onMouseDown={this.svgDragStart}
-        onMouseUp={this.svgDragEnd}
-      >
+      <SVGComponent {...svgStyle} ref={this.svgNode}>
         {/* To Do move yRange to redux state then check here to display none for crosshair */}
         <LineComponent
           {...{
@@ -641,14 +712,6 @@ class ChartContainer extends Component {
                   dragValue
                 )}
                 key={i}
-                onMouseDown={(e) => {
-                  console.log(
-                    "inside on mouseDown",
-                    e,
-                    e.currentTarget,
-                    e.currentTarget.getAttribute("x1")
-                  );
-                }}
               >
                 <LineComponent
                   {...this.getLineProps(
