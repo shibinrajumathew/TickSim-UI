@@ -194,17 +194,53 @@ class ChartContainer extends Component {
   resumeChart = () => {
     this.props.setChartPlay(true);
   };
-
-  //event handlers
+  /**
+   * EVENT HANDLERS
+   */
+  //To pause chart on background
   onBlur = () => {
-    // To Do pause timer and stop char draw
     this.pauseChart();
   };
+  //  To play chart on foreground
   onFocus = () => {
     this.resumeChart();
   };
+  //To handle right button events
   handleContextMenu = (e) => {
     e.preventDefault();
+    let {
+      target: {
+        dataset: { line, id },
+      },
+    } = e;
+    id = parseInt(id);
+    let { trendLine, horizontalLine, isDragging, draggingElement } = this.state;
+    switch (line) {
+      case "trendLine":
+        trendLine = trendLine.filter((data, arrayIndex) => arrayIndex !== id);
+
+        console.log("trendLine::::", trendLine);
+        isDragging = false;
+        draggingElement = null;
+        break;
+      case "horizontalLine":
+        horizontalLine = horizontalLine.filter(
+          (data, arrayIndex) => arrayIndex !== id
+        );
+        isDragging = false;
+        draggingElement = null;
+        break;
+
+      default:
+        break;
+    }
+
+    this.setState({
+      trendLine,
+      horizontalLine,
+      draggingElement,
+      isDragging,
+    });
     return false;
   };
   handleCrossWire = (e) => {
@@ -367,41 +403,11 @@ class ChartContainer extends Component {
     e.stopPropagation();
     let {
       currentTarget: { tagName },
-      button,
     } = e;
-    let { trendLine, horizontalLine, isDragging } = this.state;
     let draggingElement = tagName;
-    switch (type) {
-      case "trendLine":
-        if (button === 2) {
-          e.preventDefault();
-          trendLine = trendLine.filter(
-            (data, arrayIndex) => arrayIndex !== index
-          );
-          isDragging = false;
-          draggingElement = null;
-        }
-        break;
-      case "horizontalLine":
-        if (button === 2) {
-          e.preventDefault();
-          horizontalLine = horizontalLine.filter(
-            (data, arrayIndex) => arrayIndex !== index
-          );
-          isDragging = false;
-          draggingElement = null;
-        }
-        break;
-
-      default:
-        break;
-    }
     this.setState({
-      trendLine,
-      horizontalLine,
       draggingElement,
       draggingElementType: type,
-      isDragging,
       draggingElementIndex: index,
       draggingElementPosition: position,
     });
@@ -422,6 +428,10 @@ class ChartContainer extends Component {
 
     let candleSpeedInMilSec = candleSpeedInSec * 1000;
     let dynamicCandleSpeedInMilSec = candleSpeedInMilSec * 0.2; //always keep speed greater than 1 sec
+    //To avoid webworker running background on focus
+    if (data.length === dbDataLength) {
+      return;
+    }
     if (singleCandleWebWorkerInstance === undefined)
       this.getSingleCandleDataWebWorkerInstance();
 
@@ -796,6 +806,8 @@ class ChartContainer extends Component {
                   x2,
                   y1,
                   y2,
+                  "data-line": "trendLine",
+                  "data-id": index,
                   style: {
                     stroke: "rgb(255,255,255)",
                     strokeWidth: 2,
@@ -810,6 +822,8 @@ class ChartContainer extends Component {
                   index
                 )}
                 r="5"
+                data-line="trendLine"
+                data-id={index}
                 cx={x1}
                 cy={y1}
                 style={{ fill: "white" }}
@@ -824,6 +838,8 @@ class ChartContainer extends Component {
                 r="5"
                 cx={x2}
                 cy={y2}
+                data-line="trendLine"
+                data-id={index}
                 style={{ fill: "white" }}
               />
             </SVGGroupComponent>
@@ -840,6 +856,8 @@ class ChartContainer extends Component {
                   x2: 800,
                   y1: y,
                   y2: y,
+                  "data-line": "horizontalLine",
+                  "data-id": index,
                   style: {
                     stroke: "rgb(255,255,255)",
                     strokeWidth: 2,
@@ -856,6 +874,8 @@ class ChartContainer extends Component {
                 r="5"
                 cx={800 / 2}
                 cy={y}
+                data-line="horizontalLine"
+                data-id={index}
                 style={{ fill: "white" }}
               />
             </SVGGroupComponent>
