@@ -12,7 +12,7 @@
  * Copyright (c) 2020 VVEEO
  */
 import React, { Component } from "react";
-import ChartContainer from "../features/chart/ChartContainerTest";
+import ChartContainer from "../features/chart/ChartContainer";
 import {
   Container,
   Col,
