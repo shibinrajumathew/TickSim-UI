@@ -12,21 +12,56 @@
  * Copyright (c) 2020 VVEEO
  */
 import React from "react";
-import { BrowserRouter as Router, Route } from "react-router-dom";
-import { tsWrapper } from "../utils/tsWrapper";
+import { Controller, PublicComponent, PrivateComponent } from "../utils/route";
 import HomeContainer from "../views/homePage/HomeContainer";
+import LoginContainer from "../views/loginPage/LoginContainer";
+import MultiTradingPlatformContainer from "../views/tradingPlatformPage/MultiTradingPlatformContainer";
+import SingleChart from "../views/tradingPlatformPage/SingleChart";
 import TradingPlatformContainer from "../views/tradingPlatformPage/TradingPlatformContainer";
 
 function basicController() {
+  let PublicComponentsAttributes = [
+    {
+      component: HomeContainer,
+      path: "/",
+      exact: true,
+    },
+    {
+      component: LoginContainer,
+      path: "/login",
+      redirectPath: "/tradingPlatform",
+      exact: true,
+    },
+    {
+      component: MultiTradingPlatformContainer,
+      path: "/multiTradingPlatform",
+      exact: true,
+    },
+    {
+      component: SingleChart,
+      path: "/singleChart",
+      exact: true,
+    },
+  ];
+  // NOTE: PRIVATE components Attributes eg: demo trading
+  let PrivateComponentAttributes = [
+    {
+      component: TradingPlatformContainer,
+      path: "/tradingPlatform",
+      exact: true,
+      redirectPath: "/login",
+    },
+  ];
+  //Controller Begins
   return (
-    <Router>
-      <Route render={tsWrapper(HomeContainer)} exact path={"/home"} />
-      <Route
-        render={tsWrapper(TradingPlatformContainer)}
-        exact
-        path={"/tradingPlatform"}
-      />
-    </Router>
+    <Controller>
+      {PublicComponentsAttributes.map((attribute, index) => (
+        <PublicComponent key={`publicComponent_${index}`} {...attribute} />
+      ))}
+      {PrivateComponentAttributes.map((attribute, index) => (
+        <PrivateComponent key={`privateComponent_${index}`} {...attribute} />
+      ))}
+    </Controller>
   );
 }
 

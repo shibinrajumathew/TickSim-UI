@@ -24,7 +24,7 @@ const HomeComponent = (props) => {
   console.log("inside home component");
   return (
     <div>
-      <h1>Default title {xRange[0]}</h1>
+      <h1 style={{ color: "white" }}>Default title </h1>
       {/* <button onClick={() => dispatch(incrementXRange([1, 0]))}> */}
       {/* {" "}
         counter test app

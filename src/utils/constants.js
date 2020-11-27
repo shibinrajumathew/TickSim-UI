@@ -36,5 +36,11 @@ const constants = {
     MOUSE_UP: "mouseup",
     CONTEXT_MENU: "contextmenu",
   },
+  USER: {
+    ID: "user_id",
+    NAME: "user_name",
+    AUTH_TOKEN: "access_token",
+    AUTH_TYPE: "user_type",
+  },
 };
 export default constants;

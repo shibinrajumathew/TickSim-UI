@@ -33,7 +33,7 @@ class HomeContainer extends Component {
           }
         }}
       >
-        <h1>testing state rendering {`${xRange[0]}, ${xRange[1]}`}</h1>
+        {/* <h1>testing state rendering {`${xRange[0]}, ${xRange[1]}`}</h1> */}
         {/* <button onClick={() => tsContainerDispatch(increment(2))}>
           counter test app
         </button> */}

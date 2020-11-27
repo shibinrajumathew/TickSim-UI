@@ -74,11 +74,11 @@ let scaleFontStyle = {
   fontSize: "10",
   fontFamily: "sans-serif",
 };
-let width = 840;
-let height = 350;
-let viewBoxWidth = 850;
+let width = "100%";
+let height = 300;
+let viewBoxWidth = 800;
 let viewBoxHeight = 300;
-let viewBoxX = -50;
+let viewBoxX = 0;
 let viewBoxY = 0;
 let viewBox = `${viewBoxX}, ${viewBoxY}, ${viewBoxWidth}, ${viewBoxHeight}`; //-x for yScale up to 10 digit with 2 decimal points
 let svgGroupRootStyle = {
@@ -787,6 +787,15 @@ class ChartContainer extends Component {
           clipPath={`url(#${candleStickClipId})`}
           {...svgGroupRootStyle}
         >
+          <text
+            x={150}
+            y={100}
+            font-size="40px"
+            font-style="bold"
+            fill="#212529"
+          >
+            BETA.Version - vveeo.com
+          </text>
           {data.map((candleData, i) => {
             const { open, close, high, low, date } = candleData;
             return (

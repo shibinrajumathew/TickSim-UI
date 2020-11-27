@@ -15,5 +15,8 @@ const config = {
   devTool:
     window.__REDUX_DEVTOOLS_EXTENSION__ &&
     window.__REDUX_DEVTOOLS_EXTENSION__(),
+  tempData: {
+    token: "8d8bcda9-295a-41eb-962e-bf632e33125a",
+  },
 };
 export default config;
