@@ -1,0 +1,35 @@
+body,
+#block,
+.block {
+  background-color: #010715;
+  outline: none;
+  float: left;
+}
+g.tick line {
+  stroke: #ff7f00;
+  stroke-width: 0.6;
+  stroke-opacity: 0.2;
+}
+g.tick text {
+  color: #afb7b4;
+  stroke-width: 0.6px;
+}
+rect.outerLayer {
+  fill: #010715;
+}
+.domain {
+  stroke: #ffffff;
+  stroke-width: 0.5px;
+  stroke-opacity: 0.3px;
+}
+.xAxis,
+.yAxis {
+  /* stroke:#d9d9d9; */
+  font-size: 14px;
+}
+g .outerLayer {
+  fill: transparent;
+}
+svgMain {
+  fill: #010715;
+}

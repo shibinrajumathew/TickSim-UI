@@ -17,7 +17,7 @@ import { utcFormat as d3UTCFormat } from "d3-time-format";
 import { format as d3Format } from "d3-format";
 
 // let xRange = [50, 800]; //change with margin left, right
-let yRange = [275, 0]; //change with height, margin top, bottom
+let yRange = [window.innerHeight, 0]; //change with height, margin top, bottom
 let xIncrementSize = 5;
 let yScaleIncrementValue = 2;
 

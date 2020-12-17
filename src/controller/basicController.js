@@ -13,6 +13,7 @@
  */
 import React from "react";
 import { Controller, PublicComponent, PrivateComponent } from "../utils/route";
+import MultipleChartContainer from "../views/features/chart/MultipleChartContainer";
 import HomeContainer from "../views/homePage/HomeContainer";
 import LoginContainer from "../views/loginPage/LoginContainer";
 import MultiTradingPlatformContainer from "../views/tradingPlatformPage/MultiTradingPlatformContainer";
@@ -46,7 +47,7 @@ function basicController() {
   // NOTE: PRIVATE components Attributes eg: demo trading
   let PrivateComponentAttributes = [
     {
-      component: TradingPlatformContainer,
+      component: MultipleChartContainer,
       path: "/tradingPlatform",
       exact: true,
       redirectPath: "/login",

@@ -103,19 +103,19 @@ class ChartContainer extends Component {
     let candleSpeedInMilSec = candleSpeedInSec * 1000;
     let dynamicCandleSpeedInMilSec = candleSpeedInMilSec * 0.3;
     let { data, nCandlesTotalArray, nCandle, maNCandle } = this.state;
-    data.map((data, i) => {
-      let { date } = data;
-      let dummyDataIndicator = {
-        totalHigh: 1,
-        totalLow: 1,
-        totalOpen: 1,
-        totalClose: 1,
-        date,
-        candleCount: 1,
-      };
-      nCandlesTotalArray = [...nCandlesTotalArray, dummyDataIndicator];
-      return nCandlesTotalArray;
-    });
+    // data.map((data, i) => {
+    //   let { date } = data;
+    //   let dummyDataIndicator = {
+    //     totalHigh: 1,
+    //     totalLow: 1,
+    //     totalOpen: 1,
+    //     totalClose: 1,
+    //     date,
+    //     candleCount: 1,
+    //   };
+    //   nCandlesTotalArray = [...nCandlesTotalArray, dummyDataIndicator];
+    //   return nCandlesTotalArray;
+    // });
     let candleDataFetch = setInterval(() => {
       let dynamicData = {};
       let dynamicCandleCounter = 1;

@@ -24,7 +24,7 @@ const {
   },
 } = actionType;
 //REDUCER
-const xRange = (xRangeState = [40, 840], action) => {
+const xRange = (xRangeState = [40, window.innerWidth], action) => {
   const { type } = action;
   //Increment
   if (type === INCREMENT_X1_ONLY) {

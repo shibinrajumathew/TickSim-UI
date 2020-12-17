@@ -908,4 +908,4 @@ let getMAPoint = (movingAverageScale = 5) => {
   });
   return maPoints;
 };
-export { data, slicedData, getMAPoint };
+export default data;
