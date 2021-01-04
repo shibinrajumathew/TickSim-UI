@@ -13,14 +13,7 @@
  */
 import React, { Component } from "react";
 import ChartContainer from "../features/chart/ChartContainer";
-import {
-  Container,
-  Col,
-  Row,
-  Input,
-  Button,
-  Table,
-} from "../common/cssFrameworkComponents/CoreComponents";
+import { Container } from "../common/cssFrameworkComponents/CoreComponents";
 
 class SingleChart extends Component {
   constructor(props) {
@@ -33,7 +26,6 @@ class SingleChart extends Component {
     this.setChartPlay = this.setChartPlay.bind(this);
   }
   setCandleIndex = (endCandle = 1, startCandle = 0) => {
-    console.log("endCandle::::inside parent container", endCandle);
     this.setState({
       startCandle,
       endCandle,

@@ -19,9 +19,6 @@ import { tsComponentState } from "../../utils/storeManager";
 const HomeComponent = (props) => {
   const xRange = tsComponentState((state) => state.xRange);
   // const dispatch = tsComponentDispatch();
-  console.log("counter", xRange);
-
-  console.log("inside home component");
   return (
     <div>
       <h1 style={{ color: "white" }}>Default title </h1>

@@ -869,14 +869,6 @@ let getMAPoint = (movingAverageScale = 5) => {
     let lastIndex = index - movingAverageScale;
     let tempAverage = { high, low, open, close };
     for (let prevIndex = index; prevIndex >= lastIndex; prevIndex--) {
-      // console.log(
-      //   "prevIndex",
-      //   prevIndex,
-      //   "slicedData[prevIndex]",
-      //   slicedData[prevIndex],
-      //   "tempAverage",
-      //   tempAverage
-      // );
       let { high, low, open, close } = slicedData[prevIndex];
       tempAverage.high += high;
       tempAverage.low += low;

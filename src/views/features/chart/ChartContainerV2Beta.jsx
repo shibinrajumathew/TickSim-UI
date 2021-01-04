@@ -234,8 +234,6 @@ class ChartContainer extends Component {
     switch (line) {
       case "trendLine":
         trendLine = trendLine.filter((data, arrayIndex) => arrayIndex !== id);
-
-        console.log("trendLine::::", trendLine);
         isDragging = false;
         draggingElement = null;
         break;
@@ -347,13 +345,11 @@ class ChartContainer extends Component {
     switch (key) {
       case "t":
       case "T":
-        console.log("key t pressed");
         this.drawTrendLine();
         //draw trend line
         break;
       case "h":
       case "H":
-        console.log("key h pressed");
         this.drawHLine();
         //draw horizontal line
         break;
@@ -443,7 +439,6 @@ class ChartContainer extends Component {
     let newTrendLine = [];
     // if (trendLine && trendLine.length > 0) {
     //   newTrendLine = trendLine.map((data, index) => {
-    //     console.log("trendLine inside svg drag", data);
     //     let { x1, x2, y1, y2 } = data;
     //     return {
     //       x1: x1 + dragValue,
@@ -755,7 +750,6 @@ class ChartContainer extends Component {
     //     trendLine[0]["x1"] =
     //       xAxisFunction(closestValue) + xAxisBandWidthMidPoint;
     //     // this.setState({ trendLine });
-    //     console.log("closestValue", closestValue);
     //   });
     // }
 

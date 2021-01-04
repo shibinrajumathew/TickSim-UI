@@ -31,7 +31,6 @@ const xRange = (xRangeState = [40, window.innerWidth], action) => {
     let response = [...xRangeState];
     response[0] += Math.abs(response[0] - response[1]) * 0.5;
     if (Math.abs(response[0] - response[1]) < 600) return xRangeState;
-    console.log("inside 1", response[0]);
     return response;
   }
   if (type === INCREMENT_X2_ONLY) {
@@ -49,11 +48,6 @@ const xRange = (xRangeState = [40, window.innerWidth], action) => {
   if (type === DECREMENT_X1_ONLY) {
     let response = [...xRangeState];
     response[0] -= Math.abs(response[0] - response[1]) * 0.5;
-    console.log(
-      "response[0]",
-      response[0],
-      Math.abs(response[0] - response[1])
-    );
     // if (Math.abs(response[0] - response[1]) < 600) return xRangeState;
     return response;
   }

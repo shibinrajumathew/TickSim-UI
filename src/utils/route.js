@@ -18,7 +18,6 @@ import { tsWrapper } from "./tsWrapper";
 import userAuthServices from "../services/authServices";
 
 const isAuthenticated = () => !!userAuthServices.getToken();
-console.log("isAuthenticated", isAuthenticated());
 
 const getPrivateComponent = (props, Component, pathname) =>
   isAuthenticated() ? (
@@ -27,6 +26,13 @@ const getPrivateComponent = (props, Component, pathname) =>
     <Redirect to={{ pathname, state: { from: props.location } }} />
   );
 const getPublicComponent = (
+  props,
+  Component,
+  pathname,
+  { path: currentPath }
+) => <Component {...props} />;
+
+const getUnAuthenticatedComponent = (
   props,
   Component,
   pathname,
@@ -50,6 +56,14 @@ const PublicComponent = ({ component, redirectPath, ...rest }) => (
     )}
   />
 );
+const UnAuthenticatedComponent = ({ component, redirectPath, ...rest }) => (
+  <Route
+    {...rest}
+    render={tsWrapper((props) =>
+      getUnAuthenticatedComponent(props, component, redirectPath, rest)
+    )}
+  />
+);
 
 PrivateComponent.defaultProps = {
   location: null,
@@ -67,5 +81,14 @@ PublicComponent.propTypes = {
   component: PropTypes.func.isRequired,
   location: PropTypes.func,
 };
+UnAuthenticatedComponent.propTypes = {
+  component: PropTypes.func.isRequired,
+  location: PropTypes.func,
+};
 class Controller extends BrowserRouter {}
-export { PrivateComponent, PublicComponent, Controller };
+export {
+  PrivateComponent,
+  PublicComponent,
+  UnAuthenticatedComponent,
+  Controller,
+};

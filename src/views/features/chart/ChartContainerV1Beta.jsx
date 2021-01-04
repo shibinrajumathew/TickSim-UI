@@ -136,7 +136,6 @@ class ChartContainer extends Component {
       };
 
       let dynamicCandleInterval = setInterval(() => {
-        console.log(" dbData[i]", dbData.length);
         let { open, close, high, low, date } = dbData[i];
         switch (dynamicCandleCounter) {
           case 1:
@@ -148,7 +147,6 @@ class ChartContainer extends Component {
               low,
             };
             data = [...data, dynamicData];
-            if (!data) console.log("no data");
             //For the indicator - MV
             let MALastNCandles = data.slice(0).slice(-(maNCandle - 1));
             //data value assigned only after dynamic operation so we need to assign original dbData of candle

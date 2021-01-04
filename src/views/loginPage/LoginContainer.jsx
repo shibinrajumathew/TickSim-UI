@@ -33,10 +33,10 @@ class LoginContainer extends Component {
   handleLogin = () => {
     const { username, password } = this.state;
     if (username && password) {
-      console.log("handleLogin:::: inside");
       //To DO Validate input, replace this logic with real auth services
       if (username === "admin" && password === "pass") {
         userAuthServices.setToken(token);
+        this.props.history.push("/login");
       }
     } else {
       console.log("something empty");
@@ -46,7 +46,6 @@ class LoginContainer extends Component {
     const {
       target: { name, value },
     } = e;
-    console.log("inside handle input::", [name], value);
     this.setState({
       [name]: value,
     });

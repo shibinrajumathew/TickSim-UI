@@ -13,13 +13,7 @@
  */
 import React from "react";
 
-const Rectangle = (props) => {
-  const { width, height, x, y } = props;
-  return (
-    <React.Fragment>
-      <rect width={width} height={height} x={x} y={y} />
-    </React.Fragment>
-  );
-};
-
+const Rectangle = React.forwardRef((props, ref) => {
+  return <rect ref={ref} {...props} />;
+});
 export default Rectangle;

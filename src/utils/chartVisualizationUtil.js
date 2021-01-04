@@ -27,10 +27,11 @@ const getFormattedDate = (date, prevDate) => {
     }
     return date.getDate();
   }
-  return getShortDate(date);
+  if (prevDate === null) return getLongYear(date);
+  return date.getDate();
 };
 const getShortMonthName = (date) => {
-  let format = d3.utcFormat("%b  %Y");
+  let format = d3.utcFormat("%d %b");
   return format(date);
 };
 const getShortDate = (date) => {
@@ -38,25 +39,46 @@ const getShortDate = (date) => {
   return format(date);
 };
 const getLongYear = (date) => {
-  let format = d3.utcFormat("%b %Y");
+  let format = d3.utcFormat("%d %b %y");
   return format(date);
 };
 
 /////////////////////////////////////////////////////////////////
+const getNewScales = () => {
+  return {
+    xNewScale,
+    yNewScale,
+  };
+};
+const removeSvg = (endingId) => {
+  d3.selectAll(`g#parentGroup${endingId} g.xAxis`).remove();
+  d3.selectAll(`g#parentGroup${endingId} g.yAxis`).remove();
+  d3.selectAll(`g#candleWickGroup${endingId} g`).remove();
+};
 //mouse points
 const svgMouseMove = (endingId, position, xAxisLeftEnd, xAxisRightEnd) => {
   let xPoint;
   let yPoint;
 
-  d3.select("svg" + endingId).on("mousemove", (event) => {
+  d3.select(`svg#svgMainNode${endingId}`).on("mousemove", (event) => {
     svgXPosition = position.x;
     svgYPosition = position.y;
     xMousePoint = event.pageX - svgXPosition;
     yMousePoint = event.pageY - svgYPosition;
     xPoint = round(xNewScale.invert(xMousePoint));
     yPoint = fixed(yNewScale.invert(yMousePoint));
+    moveCrossWire(endingId, xPoint, yPoint);
   });
+
   return { xPoint, yPoint };
+};
+const moveCrossWire = (endingId, xPoint, yPoint) => {
+  d3.select(`line#crossWireXAxis${endingId}`)
+    .attr("y1", yNewScale(yPoint))
+    .attr("y2", yNewScale(yPoint));
+  d3.select(`line#crossWireYAxis${endingId}`)
+    .attr("x1", xNewScale(xPoint))
+    .attr("x2", xNewScale(xPoint));
 };
 const getDateArray = (totalCandleCount, candleData) =>
   d3.range(totalCandleCount).map((i) => candleData[i].date);
@@ -172,6 +194,7 @@ const getYScale = (candleData, yAxisTopEnd, yAxisBottomEnd) => {
 };
 // Axis
 const getXAxis = (xScale, yAxisBottomEnd, dateArray) => {
+  let prevDate = null;
   return d3
     .axisBottom(xScale)
     .tickSize(yAxisBottomEnd)
@@ -179,8 +202,10 @@ const getXAxis = (xScale, yAxisBottomEnd, dateArray) => {
       let parsedDate = parseInt(dateArray[d]);
       if (Number.isNaN(parsedDate)) return "";
       let formattedDate = new Date(dateArray[d]);
-      let prevDate = d < 1 ? null : new Date(dateArray[d - 1]);
+      // let prevDate = d < 1 ? null : new Date(dateArray[d - 1]);
       let xAxisFormattedDate = getFormattedDate(formattedDate, prevDate);
+      prevDate = formattedDate;
+      if (d === dateArray.length - 1) prevDate = null;
       return xAxisFormattedDate;
     });
 };
@@ -287,7 +312,7 @@ const getZoom = (
   zoomRightEnd,
   dragLeftEnd,
   dragRightEnd,
-  handleZoom,
+  zoomHandler,
   xScale,
   xAxis,
   gXAxis,
@@ -306,7 +331,7 @@ const getZoom = (
     .scaleExtent([0.1, 10])
     .translateExtent([dragLeftEnd, dragRightEnd])
     .on("zoom", (e) =>
-      handleZoom(
+      zoomHandler(
         e,
         xScale,
         xAxis,
@@ -335,7 +360,8 @@ const initialZoom = (
   yAxis,
   gYAxis,
   rect,
-  zoom
+  zoom,
+  scales
 ) => {
   let dXValue = xScale(totalCandleCount) - xScale(0);
   let leftCandlePoint = xScale(totalCandleCount - lastNCandlesCount);
@@ -356,7 +382,6 @@ const initialZoom = (
 };
 
 const handleZoom = (
-  event,
   xScale,
   xAxis,
   gXAxis,
@@ -367,9 +392,10 @@ const handleZoom = (
   xBand,
   xAxisLeftEnd,
   xAxisRightEnd,
-  endingId
+  endingId,
+  transform
 ) => {
-  let { transform } = event;
+  // let { transform } = event;
   xNewScale = transform.rescaleX(xScale);
   yNewScale = transform.rescaleY(yScale);
 
@@ -602,6 +628,7 @@ function redrawCandleWick(candleGroup, dateArray, xBand, xNewScale, yNewScale) {
     .attr("stroke-width", Math.max(xBand * 0.01, 1));
 }
 export {
+  removeSvg,
   svgMouseMove,
   getDateArray,
   getXScale,
@@ -615,4 +642,5 @@ export {
   getZoom,
   initialZoom,
   handleZoom,
+  getNewScales,
 };

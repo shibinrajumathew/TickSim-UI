@@ -30,7 +30,6 @@ class MultiTradingPlatformContainer extends Component {
     this.setChartPlay = this.setChartPlay.bind(this);
   }
   setCandleIndex = (endCandle = 1, startCandle = 0) => {
-    console.log("endCandle::::inside parent container", endCandle);
     this.setState({
       startCandle,
       endCandle,

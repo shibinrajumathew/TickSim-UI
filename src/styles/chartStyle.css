@@ -1,4 +1,6 @@
-body,
+body {
+  background-color: #010715;
+}
 #block,
 .block {
   background-color: #010715;
@@ -22,7 +24,9 @@ rect.outerLayer {
   stroke-width: 0.5px;
   stroke-opacity: 0.3px;
 }
-.xAxis,
+.xAxis {
+  font-size: 12px;
+}
 .yAxis {
   /* stroke:#d9d9d9; */
   font-size: 14px;

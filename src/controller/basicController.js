@@ -12,7 +12,12 @@
  * Copyright (c) 2020 VVEEO
  */
 import React from "react";
-import { Controller, PublicComponent, PrivateComponent } from "../utils/route";
+import {
+  Controller,
+  PublicComponent,
+  PrivateComponent,
+  UnAuthenticatedComponent,
+} from "../utils/route";
 import MultipleChartContainer from "../views/features/chart/MultipleChartContainer";
 import HomeContainer from "../views/homePage/HomeContainer";
 import LoginContainer from "../views/loginPage/LoginContainer";
@@ -28,12 +33,6 @@ function basicController() {
       exact: true,
     },
     {
-      component: LoginContainer,
-      path: "/login",
-      redirectPath: "/tradingPlatform",
-      exact: true,
-    },
-    {
       component: MultiTradingPlatformContainer,
       path: "/multiTradingPlatform",
       exact: true,
@@ -41,6 +40,15 @@ function basicController() {
     {
       component: SingleChart,
       path: "/singleChart",
+      exact: true,
+    },
+  ];
+  // only for user not logged in or public
+  let UnAuthenticatedComponentsAttributes = [
+    {
+      component: LoginContainer,
+      path: "/login",
+      redirectPath: "/tradingPlatform",
       exact: true,
     },
   ];
@@ -52,12 +60,24 @@ function basicController() {
       exact: true,
       redirectPath: "/login",
     },
+    {
+      component: TradingPlatformContainer,
+      path: "/tradeOnline",
+      exact: true,
+      redirectPath: "/login",
+    },
   ];
   //Controller Begins
   return (
     <Controller>
       {PublicComponentsAttributes.map((attribute, index) => (
         <PublicComponent key={`publicComponent_${index}`} {...attribute} />
+      ))}
+      {UnAuthenticatedComponentsAttributes.map((attribute, index) => (
+        <UnAuthenticatedComponent
+          key={`unAuthenticatedComponent${index}`}
+          {...attribute}
+        />
       ))}
       {PrivateComponentAttributes.map((attribute, index) => (
         <PrivateComponent key={`privateComponent_${index}`} {...attribute} />
