@@ -21,8 +21,6 @@ import {
 import MultipleChartContainer from "../views/features/chart/MultipleChartContainer";
 import HomeContainer from "../views/homePage/HomeContainer";
 import LoginContainer from "../views/loginPage/LoginContainer";
-import MultiTradingPlatformContainer from "../views/tradingPlatformPage/MultiTradingPlatformContainer";
-import SingleChart from "../views/tradingPlatformPage/SingleChart";
 import TradingPlatformContainer from "../views/tradingPlatformPage/TradingPlatformContainer";
 
 function basicController() {
@@ -30,16 +28,6 @@ function basicController() {
     {
       component: HomeContainer,
       path: "/",
-      exact: true,
-    },
-    {
-      component: MultiTradingPlatformContainer,
-      path: "/multiTradingPlatform",
-      exact: true,
-    },
-    {
-      component: SingleChart,
-      path: "/singleChart",
       exact: true,
     },
   ];
