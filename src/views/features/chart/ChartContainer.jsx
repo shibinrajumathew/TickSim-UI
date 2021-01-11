@@ -25,7 +25,7 @@ import SVGGroupComponent from "../../common/svgCoreComponents/SVGGroupComponent"
 let svgDimension = {};
 let candleData;
 const {
-  EVENTS: { CONTEXT_MENU, BLUR, FOCUS },
+  EVENTS: { CONTEXT_MENU, BLUR, FOCUS, NON_PASSIVE_EVENTS },
 } = constants;
 
 class ChartContainer extends Component {
@@ -54,15 +54,11 @@ class ChartContainer extends Component {
     this.handleContextMenu = this.handleContextMenu.bind(this);
   }
   componentDidMount() {
-    const nonPassiveEvents = {
-      passive: false,
-    };
-
     const svgNode = this.svgNode.current;
     svgNode.addEventListener(
       CONTEXT_MENU,
       this.handleContextMenu,
-      nonPassiveEvents
+      NON_PASSIVE_EVENTS
     );
   }
   componentWillUnmount() {

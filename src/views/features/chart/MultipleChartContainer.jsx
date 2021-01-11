@@ -8,7 +8,7 @@ import dataWebWorker from "../../../utils/dataWebWorker";
 import constants from "../../../utils/constants";
 let scales = [];
 const {
-  EVENTS: { CONTEXT_MENU, BLUR, FOCUS },
+  EVENTS: { BLUR, FOCUS },
 } = constants;
 let singleCandleWebWorkerInstance = undefined;
 let dynamicDataWorkerInstance = undefined;

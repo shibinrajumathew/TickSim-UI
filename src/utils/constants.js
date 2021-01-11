@@ -35,6 +35,10 @@ const constants = {
     MOUSE_MOVE: "mousemove",
     MOUSE_UP: "mouseup",
     CONTEXT_MENU: "contextmenu",
+    SUBMIT: "submit",
+    NON_PASSIVE_EVENTS: {
+      passive: false,
+    },
   },
   USER: {
     ID: "user_id",
@@ -42,5 +46,20 @@ const constants = {
     AUTH_TOKEN: "access_token",
     AUTH_TYPE: "user_type",
   },
+  ORDER_TYPE: {
+    BUY_AT_LIMIT_PRICE: "BUY_AT_LIMIT_PRICE",
+    SELL_AT_LIMIT_PRICE: "SELL_AT_LIMIT_PRICE",
+    BUY_AT_MARKET_PRICE: "BUY_AT_MARKET_PRICE",
+    SELL_AT_MARKET_PRICE: "SELL_AT_MARKET_PRICE",
+  },
+  CONSTANT_STRING_MAPPING: {
+    ORDER_TYPE: {
+      BUY_AT_LIMIT_PRICE: "Buy",
+      SELL_AT_LIMIT_PRICE: "Sell",
+      BUY_AT_MARKET_PRICE: "Buy",
+      SELL_AT_MARKET_PRICE: "Sell",
+    },
+  },
 };
+
 export default constants;
