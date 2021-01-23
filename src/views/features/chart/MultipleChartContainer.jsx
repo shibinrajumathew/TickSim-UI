@@ -132,7 +132,6 @@ class MultipleChartContainer extends Component {
         let {
           data: { dynamicCandleData, dynamicCandleCounter, index },
         } = e;
-        this.props.setCurrentValue(dynamicCandleData.close);
         if (dynamicCandleCounter === 0) {
           data = [...data, dynamicCandleData];
         }

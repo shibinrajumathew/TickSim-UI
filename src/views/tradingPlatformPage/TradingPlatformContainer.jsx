@@ -27,13 +27,11 @@ import { handleZoom } from "../../utils/chartVisualizationUtil";
 import OrderPlacingForm from "./OrderPlacingForm";
 import StatusInfo from "./StatusInfo";
 import PortfolioTable from "./PortfolioTable";
-import {
-  buyOrSellAtMarketPrice,
-  orderSearch,
-} from "../../utils/orderManagerUtil";
+import { orderManager, orderSearch } from "../../utils/orderManagerUtil";
 let scales = [];
 const {
   EVENTS: { BLUR, FOCUS, SUBMIT, NON_PASSIVE_EVENTS },
+  ORDER_TYPE: { BUY_AT_LIMIT_PRICE, SELL_AT_LIMIT_PRICE },
 } = constants;
 let singleCandleWebWorkerInstance = undefined;
 let dynamicDataWorkerInstance = undefined;
@@ -51,8 +49,9 @@ class TradingPlatformContainer extends Component {
       currentPrice: 0,
       instrumentId: "NIFTY50",
       orderTrigger: {},
-      orderQueueObj: {},
+      orderObj: {},
       orderPosition: [],
+      alertOrderField: false,
     };
     this.zoomHandler = this.zoomHandler.bind(this);
     this.handleOrderFormSubmit = this.handleOrderFormSubmit.bind(this);
@@ -193,7 +192,7 @@ class TradingPlatformContainer extends Component {
         }
 
         let {
-          orderQueueObj,
+          orderObj,
           instrumentId,
           prevPrice,
           currentPrice,
@@ -204,37 +203,34 @@ class TradingPlatformContainer extends Component {
         prevPrice = currentPrice;
         currentPrice = dynamicCandleData.close;
         // console.log(
-        //   "orderQueueObj, orderTrigger, positionQueue",
-        //   orderQueueObj,
+        //   "orderObj, orderTrigger",
+        //   orderObj,
         //   orderTrigger,
-        //   orderPosition
         // );
         if (
-          Object.keys(orderQueueObj).length > 0 &&
-          orderQueueObj.constructor === Object &&
+          Object.keys(orderObj).length > 0 &&
+          orderObj.constructor === Object &&
           Object.keys(orderTrigger).length > 0 &&
           orderTrigger.constructor === Object
         ) {
           // console.log(
-          //   " orderQueueObj, orderTrigger, positionQueue, prevPrice, currentPrice::::",
-          //   orderQueueObj,
+          //   " orderObj, orderTrigger, prevPrice, currentPrice::::",
+          //   orderObj,
           //   orderTrigger,
           //   orderPosition,
           //   prevPrice,
           //   currentPrice
           // );
           const response = orderSearch(
-            orderQueueObj,
+            orderObj,
             orderTrigger,
-            orderPosition,
             instrumentId,
             prevPrice,
             currentPrice
           );
           console.log("inside order search container response::>", response);
-          orderQueueObj = response.responseOrderQueueObj;
-          orderTrigger = response.responseOrderTrigger;
-          orderPosition = response.responsePositionQueue;
+          orderObj = response.updatedOrderObj;
+          orderTrigger = response.updatedOrderTrigger;
         }
 
         this.setState({
@@ -242,7 +238,7 @@ class TradingPlatformContainer extends Component {
           currentPrice,
           prevPrice,
           totalFilledCandles,
-          orderQueueObj,
+          orderObj,
           orderTrigger,
           orderPosition,
         });
@@ -298,56 +294,58 @@ class TradingPlatformContainer extends Component {
         limitPrice: { value: limitPrice },
         target: { value: target },
         stopLoss: { value: stopLoss },
-        riskReward: { value: riskReward },
       },
       submitter: {
         dataset: { orderType },
       },
     } = e;
-    const {
-      orderTrigger,
-      orderQueueObj,
-      orderPosition,
-      instrumentId,
-      currentPrice,
-    } = this.state;
+    const { orderTrigger, orderObj, instrumentId, currentPrice } = this.state;
     let response = null;
+
+    //parse input value
     quantity = parseInt(quantity);
     target = parseFloat(target);
     stopLoss = parseFloat(stopLoss);
     limitPrice = parseFloat(limitPrice);
-    response = buyOrSellAtMarketPrice(
-      orderQueueObj,
-      orderTrigger,
-      orderPosition,
-      instrumentId,
-      orderType,
-      quantity,
-      currentPrice,
-      target,
-      stopLoss,
-      limitPrice
-    );
-    const {
-      returnedOrderQueueObj,
-      returnedTriggerObj,
-      returnedPositionQueue,
-    } = response;
-    console.log(
-      "returnobj",
-      returnedOrderQueueObj,
-      returnedTriggerObj,
-      returnedPositionQueue
-    );
-    this.setState({
-      orderQueueObj: returnedOrderQueueObj,
-      orderTrigger: returnedTriggerObj,
-      orderPosition: returnedPositionQueue,
-    });
-  }
 
+    //validate input value
+    const numberOnlyRegex = /^\d*\.?\d*$/;
+    let isValidInput =
+      numberOnlyRegex.test(quantity) &&
+      numberOnlyRegex.test(target) &&
+      numberOnlyRegex.test(stopLoss);
+
+    if (orderType === BUY_AT_LIMIT_PRICE || orderType === SELL_AT_LIMIT_PRICE)
+      isValidInput = isValidInput && numberOnlyRegex.test(limitPrice);
+    //process order if valid else alert on order form
+    if (isValidInput) {
+      response = orderManager(
+        orderObj,
+        orderTrigger,
+        instrumentId,
+        orderType,
+        quantity,
+        currentPrice,
+        target,
+        stopLoss,
+        limitPrice
+      );
+
+      const { updatedOrderObj, updatedTriggerObj } = response;
+      this.setState({
+        alertOrderField: false,
+        orderObj: updatedOrderObj,
+        orderTrigger: updatedTriggerObj,
+      });
+    } else {
+      this.setState({
+        alertOrderField: true,
+      });
+    }
+  }
+  //To update pl in paper trading page
   updatePL(pL) {
-    console.log("update pl inside onctainer", pL);
+    console.log("update pl inside container", pL);
     currentPL = parseFloat(pL);
     fundBalance = parseFloat(fundBalance) + currentPL;
     fundBalance = fundBalance.toFixed(2);
@@ -380,10 +378,11 @@ class TradingPlatformContainer extends Component {
       isInitialData,
       nCandle,
       currentPrice,
-      orderQueueObj,
+      orderObj,
       orderPosition,
+      alertOrderField,
     } = this.state;
-    // console.log("orderQueueObj", orderQueueObj);
+    // console.log("orderObj", orderObj);
     return (
       <Container className="mx-auto" fluid>
         {/* <Col className="mt-5 p-0">
@@ -408,6 +407,7 @@ class TradingPlatformContainer extends Component {
             <OrderPlacingForm
               ref={this.orderFormNode}
               currentPrice={currentPrice}
+              alertOrderField={alertOrderField}
             />
             <StatusInfo
               currentPrice={currentPrice}
@@ -418,7 +418,7 @@ class TradingPlatformContainer extends Component {
         </Row>
         <Row>
           <PortfolioTable
-            orderQueueObj={orderQueueObj}
+            orderObj={orderObj}
             orderPosition={orderPosition}
             currentPrice={currentPrice}
             updatePL={this.updatePL}

@@ -8,6 +8,7 @@ import {
   Button,
   Table,
   Form,
+  Alert,
 } from "../common/cssFrameworkComponents/CoreComponents";
 const {
   ORDER_TYPE: {
@@ -16,10 +17,12 @@ const {
     BUY_AT_MARKET_PRICE,
     SELL_AT_MARKET_PRICE,
   },
+  ERRORS: { INVALID_ORDER_INPUT },
+  ERROR_MESSAGES,
 } = constants;
 
 const OrderPlacingForm = React.forwardRef((props, ref) => {
-  let { currentPrice } = props;
+  let { currentPrice, alertOrderField } = props;
   return (
     <Row>
       <form id="orderForm" ref={ref}>
@@ -37,18 +40,17 @@ const OrderPlacingForm = React.forwardRef((props, ref) => {
           className="rounded-0 mb-2  bg-dark  border-0 text-light"
           placeholder="Limit Price"
           name="limitPrice"
-          min={"1"} // TO DO need to change this logic
+          min={"1"}
           step="0.5"
         />
         <Input
-          type="text"
+          type="number"
           className="rounded-0 mb-2  bg-dark  border-0 text-light"
           placeholder="Target"
           name="target"
           step="0.5"
-          min="0"
+          min="0.5"
           pattern="^[^0*][0-9]{0,}"
-          title="Must be larger than zero"
           required
         />
         <Input
@@ -57,7 +59,7 @@ const OrderPlacingForm = React.forwardRef((props, ref) => {
           placeholder="StopLoss"
           name="stopLoss"
           step="0.5"
-          min="0"
+          min="0.5"
           required
         />
         <Input
@@ -98,6 +100,11 @@ const OrderPlacingForm = React.forwardRef((props, ref) => {
           Sell @ Market Price
         </Button>
       </form>
+      {alertOrderField && (
+        <Alert color="danger" className="mt-2">
+          {ERROR_MESSAGES[INVALID_ORDER_INPUT]}
+        </Alert>
+      )}
     </Row>
   );
 });

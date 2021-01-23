@@ -11,8 +11,8 @@ const {
   CONSTANT_STRING_MAPPING: { ORDER_TYPE },
 } = constants;
 const portfolioTable = (props) => {
-  const { orderQueueObj, currentPrice, updatePL } = props;
-  const instruments = Object.keys(orderQueueObj);
+  const { orderObj, currentPrice, updatePL } = props;
+  const instruments = Object.keys(orderObj);
   let totalProfitOrLoss = 0;
   return (
     <React.Fragment>
@@ -29,9 +29,7 @@ const portfolioTable = (props) => {
 
         <tbody className="text-light">
           {instruments.map((instrumentId, index) => {
-            const orderIds = Object.keys(orderQueueObj[instrumentId]).map(
-              Number
-            );
+            const orderIds = Object.keys(orderObj[instrumentId]).map(Number);
             return orderIds.map((orderId) => {
               const {
                 orderType,
@@ -42,7 +40,7 @@ const portfolioTable = (props) => {
                 targetPrice,
                 stopLossPrice,
                 finalTriggerPrice,
-              } = orderQueueObj[instrumentId][orderId];
+              } = orderObj[instrumentId][orderId];
               let processedPOrL = profitOrLossValue;
               let lastTickValue =
                 status === "ORDER_COMPLETED"

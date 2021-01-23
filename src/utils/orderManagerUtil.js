@@ -9,42 +9,57 @@ const {
   },
 } = constants;
 const initialOrderObj = (
-  orderQueueObj,
+  orderObj,
   orderTrigger,
   instrumentId,
   orderType,
   quantity,
   currentPrice,
   targetPoint,
-  stopLossPoint
+  stopLossPoint,
+  limitPrice
 ) => {
+  console.log(
+    "inside initOrderObj:::",
+    orderObj,
+    orderTrigger,
+    instrumentId,
+    orderType,
+    quantity,
+    currentPrice,
+    targetPoint,
+    stopLossPoint,
+    limitPrice
+  );
   let targetPrice = 0;
   let stopLossPrice = 0;
   let orderId = Date.now().toString();
-  let limitPrice = 0;
-  let updatedOrderQueue = [];
   let status = "ORDER_PLACED";
+  let updatedLimitPrice = currentPrice;
   switch (orderType) {
     case BUY_AT_MARKET_PRICE:
-      limitPrice = currentPrice;
       status = "ORDER_EXECUTED";
-      targetPrice = limitPrice + targetPoint;
-      stopLossPrice = limitPrice - stopLossPoint;
+      targetPrice = updatedLimitPrice + targetPoint;
+      stopLossPrice = updatedLimitPrice - stopLossPoint;
       break;
     case SELL_AT_MARKET_PRICE:
-      limitPrice = currentPrice;
       status = "ORDER_EXECUTED";
-      targetPrice = limitPrice - targetPoint;
-      stopLossPrice = limitPrice + stopLossPoint;
+      targetPrice = updatedLimitPrice - targetPoint;
+      stopLossPrice = updatedLimitPrice + stopLossPoint;
+      break;
+
+    case BUY_AT_LIMIT_PRICE:
+    case SELL_AT_LIMIT_PRICE:
+      updatedLimitPrice = limitPrice;
       break;
     default:
       break;
   }
 
-  const orderObj = {
+  const newOrderObj = {
     quantity,
     orderType,
-    limitPrice,
+    limitPrice: updatedLimitPrice,
     targetPoint,
     stopLossPoint,
     targetPrice,
@@ -54,26 +69,26 @@ const initialOrderObj = (
     lastUpdatedPrice: "",
     status,
   };
-
-  if (orderQueueObj[instrumentId]) {
+  let updatedOrderObj = { ...orderObj };
+  if (orderObj[instrumentId]) {
     //To Do instead of adding new order,
     //add qty to already placed order and set limit price to avg
     //if opposite trade then (2 conditions) do sufficient step
-    updatedOrderQueue = { [orderId]: orderObj };
-    orderQueueObj[instrumentId] = {
-      ...updatedOrderQueue,
-      ...orderQueueObj[instrumentId],
+    let tempOrderObj = { [orderId]: newOrderObj };
+    updatedOrderObj[instrumentId] = {
+      ...tempOrderObj,
+      ...orderObj[instrumentId],
     };
   } else {
-    orderQueueObj = {
+    updatedOrderObj = {
       [instrumentId]: {
-        [orderId]: orderObj,
+        [orderId]: newOrderObj,
       },
     };
   }
 
   return {
-    orderQueueObj,
+    updatedOrderObj,
     orderId,
     targetPrice,
     stopLossPrice,
@@ -84,54 +99,35 @@ const orderTriggerQueueInsertion = (
   triggerPricesArray,
   orderId
 ) => {
-  let returnedTriggerObj = { ...orderTrigger };
+  let updatedTriggerObj = { ...orderTrigger };
   triggerPricesArray.map((price) => {
-    if (returnedTriggerObj[price]) {
-      returnedTriggerObj[price] = [...orderTrigger[price], orderId];
+    if (updatedTriggerObj[price]) {
+      updatedTriggerObj[price] = [...orderTrigger[price], orderId];
     } else {
-      returnedTriggerObj = {
+      updatedTriggerObj = {
         ...{ [price]: [orderId] },
-        ...returnedTriggerObj,
+        ...updatedTriggerObj,
       };
     }
     return orderTrigger;
   });
-  return returnedTriggerObj;
-};
-const positionQueueInsertion = (positionQueue, orderId) => {
-  positionQueue = [orderId, ...positionQueue];
-  return positionQueue;
+  return updatedTriggerObj;
 };
 const orderSearch = (
-  orderQueueObj,
+  orderObj,
   orderTrigger,
-  positionQueue,
   instrumentId,
   prevPrice,
   currentPrice
 ) => {
   const priceKey = Object.keys(orderTrigger).map(Number);
-  let responsePositionQueue = [...positionQueue];
-  let responseOrderTrigger = { ...orderTrigger };
-  let responseOrderQueueObj = { ...orderQueueObj };
+  let updatedOrderTrigger = { ...orderTrigger };
+  let updatedOrderObj = { ...orderObj };
   priceKey.forEach((triggerPrice) => {
     let isTriggerTypeBuy =
       prevPrice <= triggerPrice && triggerPrice <= currentPrice;
     let isTriggerTypeSell =
       prevPrice >= triggerPrice && triggerPrice >= currentPrice;
-
-    // console.log(
-    //   "isTriggerTypeBuy, isTriggerTypeSell",
-    //   isTriggerTypeBuy,
-    //   isTriggerTypeSell,
-    //   "prevPrice",
-    //   prevPrice,
-    //   "triggerPrice",
-    //   triggerPrice,
-    //   "currentPrice",
-    //   currentPrice
-    // );
-
     if (isTriggerTypeBuy || isTriggerTypeSell) {
       orderTrigger[triggerPrice].forEach((orderId) => {
         let {
@@ -143,7 +139,7 @@ const orderSearch = (
           quantity,
           targetPoint,
           stopLossPoint,
-        } = responseOrderQueueObj[instrumentId][orderId];
+        } = updatedOrderObj[instrumentId][orderId];
 
         let isBuyOrder =
           orderType === BUY_AT_LIMIT_PRICE || orderType === BUY_AT_MARKET_PRICE;
@@ -171,11 +167,8 @@ const orderSearch = (
           // );
           switch (status) {
             case "ORDER_PLACED":
-              ({
-                responseOrderTrigger,
-                responseOrderQueueObj,
-              } = buySellAtLimitPrice(
-                responseOrderQueueObj,
+              ({ updatedOrderTrigger, updatedOrderObj } = buySellAtLimitPrice(
+                updatedOrderObj,
                 orderId,
                 instrumentId,
                 targetPrice,
@@ -189,11 +182,11 @@ const orderSearch = (
               break;
             //final order execution
             case "ORDER_EXECUTED":
-              responseOrderQueueObj = processExecutedOrder(
+              updatedOrderObj = processExecutedOrder(
                 stopLossPrice,
                 triggerPrice,
                 targetPrice,
-                responseOrderQueueObj,
+                updatedOrderObj,
                 instrumentId,
                 orderId,
                 orderType,
@@ -208,27 +201,31 @@ const orderSearch = (
       });
     }
   });
-  return { responsePositionQueue, responseOrderTrigger, responseOrderQueueObj };
+  console.log(
+    "updatedOrderTrigger, updatedOrderObj",
+    updatedOrderTrigger,
+    updatedOrderObj
+  );
+  return { updatedOrderTrigger, updatedOrderObj };
 };
 const processExecutedOrder = (
   stopLossPrice,
   triggerPrice,
   targetPrice,
-  responseOrderQueueObj,
+  updatedOrderObj,
   instrumentId,
   orderId,
   orderType,
   limitPrice,
   quantity
 ) => {
+  console.log("inside processExecutedOrder");
   if (stopLossPrice === triggerPrice || targetPrice === triggerPrice) {
-    responseOrderQueueObj[instrumentId][orderId].status = "ORDER_COMPLETED";
-    responseOrderQueueObj[instrumentId][
-      orderId
-    ].finalTriggerPrice = triggerPrice;
+    updatedOrderObj[instrumentId][orderId].status = "ORDER_COMPLETED";
+    updatedOrderObj[instrumentId][orderId].finalTriggerPrice = triggerPrice;
 
     if (orderType === BUY_AT_LIMIT_PRICE || orderType === BUY_AT_MARKET_PRICE) {
-      responseOrderQueueObj[instrumentId][orderId].profitOrLossValue =
+      updatedOrderObj[instrumentId][orderId].profitOrLossValue =
         (triggerPrice - limitPrice) * quantity;
     }
 
@@ -236,14 +233,14 @@ const processExecutedOrder = (
       orderType === SELL_AT_LIMIT_PRICE ||
       orderType === SELL_AT_MARKET_PRICE
     ) {
-      responseOrderQueueObj[instrumentId][orderId].profitOrLossValue =
+      updatedOrderObj[instrumentId][orderId].profitOrLossValue =
         (limitPrice - triggerPrice) * quantity;
     }
   }
-  return responseOrderQueueObj;
+  return updatedOrderObj;
 };
 const buySellAtLimitPrice = (
-  responseOrderQueueObj,
+  updatedOrderObj,
   orderId,
   instrumentId,
   targetPrice,
@@ -255,8 +252,8 @@ const buySellAtLimitPrice = (
   orderTrigger
 ) => {
   //limit order
-  responseOrderQueueObj[instrumentId][orderId].status = "ORDER_EXECUTED";
-  responseOrderQueueObj[instrumentId][orderId].limitPrice = triggerPrice;
+  updatedOrderObj[instrumentId][orderId].status = "ORDER_EXECUTED";
+  updatedOrderObj[instrumentId][orderId].limitPrice = triggerPrice;
   targetPrice = triggerPrice + targetPoint;
   stopLossPrice = triggerPrice - stopLossPoint;
 
@@ -265,62 +262,60 @@ const buySellAtLimitPrice = (
     stopLossPrice = triggerPrice + stopLossPoint;
   }
 
-  responseOrderQueueObj[instrumentId][orderId].targetPrice = targetPrice;
-  responseOrderQueueObj[instrumentId][orderId].stopLossPrice = stopLossPrice;
+  updatedOrderObj[instrumentId][orderId].targetPrice = targetPrice;
+  updatedOrderObj[instrumentId][orderId].stopLossPrice = stopLossPrice;
 
-  const responseOrderTrigger = orderTriggerQueueInsertion(
+  const updatedOrderTrigger = orderTriggerQueueInsertion(
     orderTrigger,
     [stopLossPrice, targetPrice],
     orderId
   );
   // console.log(
   //   "inside switch  position queue response",
-  //   responsePositionQueue,
-  //   "responseOrderTrigger",
-  //   responseOrderTrigger
+  //   "updatedOrderTrigger",
+  //   updatedOrderTrigger
   // );
   return {
-    responseOrderQueueObj,
-    responseOrderTrigger,
+    updatedOrderObj,
+    updatedOrderTrigger,
   };
 };
 
-const buyOrSellAtMarketPrice = (
-  orderQueueObj,
+const orderManager = (
+  orderObj,
   orderTrigger,
-  orderPosition,
   currentInstrument,
   orderType,
   quantity,
-  currentValue,
+  currentPrice,
   target,
   stopLoss,
   limitPrice
 ) => {
   const returnedOrderQueueInitialObj = initialOrderObj(
-    orderQueueObj,
+    orderObj,
     orderTrigger,
     currentInstrument,
     orderType,
     quantity,
-    currentValue,
+    currentPrice,
     target,
-    stopLoss
+    stopLoss,
+    limitPrice
   );
   const {
     targetPrice,
     stopLossPrice,
     orderId,
-    orderQueueObj: returnedOrderQueueObj,
+    updatedOrderObj,
   } = returnedOrderQueueInitialObj;
 
-  let returnedTriggerObj = {};
-  let returnedPositionQueue = [];
+  let updatedTriggerObj = {};
 
   switch (orderType) {
     case BUY_AT_LIMIT_PRICE:
     case SELL_AT_LIMIT_PRICE:
-      returnedTriggerObj = orderTriggerQueueInsertion(
+      updatedTriggerObj = orderTriggerQueueInsertion(
         orderTrigger,
         [limitPrice],
         orderId
@@ -328,14 +323,10 @@ const buyOrSellAtMarketPrice = (
       break;
     case BUY_AT_MARKET_PRICE:
     case SELL_AT_MARKET_PRICE:
-      returnedTriggerObj = orderTriggerQueueInsertion(
+      updatedTriggerObj = orderTriggerQueueInsertion(
         orderTrigger,
         [targetPrice, stopLossPrice],
         orderId
-      );
-      returnedPositionQueue = positionQueueInsertion(
-        orderPosition,
-        returnedOrderQueueInitialObj.orderId
       );
       break;
 
@@ -344,10 +335,9 @@ const buyOrSellAtMarketPrice = (
   }
 
   return {
-    returnedOrderQueueObj,
-    returnedTriggerObj,
-    returnedPositionQueue,
+    updatedOrderObj,
+    updatedTriggerObj,
   };
 };
 
-export { buyOrSellAtMarketPrice, orderSearch };
+export { orderManager, orderSearch };

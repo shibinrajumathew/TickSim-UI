@@ -36,7 +36,7 @@ function basicController() {
     {
       component: LoginContainer,
       path: "/login",
-      redirectPath: "/tradingPlatform",
+      redirectPath: "/tradeOnline",
       exact: true,
     },
   ];

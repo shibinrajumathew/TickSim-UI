@@ -27,30 +27,52 @@ const {
 class LoginContainer extends Component {
   constructor() {
     super();
+    this.state = {
+      alertUserName: false,
+      alertPassword: false,
+      isValidInput: false,
+    };
     this.handleInput = this.handleInput.bind(this);
     this.handleLogin = this.handleLogin.bind(this);
   }
   handleLogin = () => {
-    const { username, password } = this.state;
-    if (username && password) {
+    const { username, password, isValidInput } = this.state;
+    if (username && password && isValidInput) {
       //To DO Validate input, replace this logic with real auth services
-      if (username === "admin" && password === "pass") {
+      if (username === "admin" && password === "password") {
         userAuthServices.setToken(token);
         this.props.history.push("/login");
       }
     } else {
-      console.log("something empty");
+      console.log("something empty", username, password, isValidInput);
     }
   };
   handleInput = (e) => {
     const {
       target: { name, value },
     } = e;
+    const userNameRegex = /^[a-z0-9]{5,}$/;
+    const passwordRegex = /^[a-z0-9_!@#$%^&*]{8,}$/;
+    let { alertUserName, alertPassword, isValidInput } = this.state;
+    switch (name) {
+      case "username":
+        alertUserName = !userNameRegex.test(value);
+        break;
+      case "password":
+        alertPassword = !passwordRegex.test(value);
+        break;
+
+      default:
+        break;
+    }
+    isValidInput = !alertUserName && !alertPassword;
+    this.setState({ alertUserName, alertPassword, isValidInput });
     this.setState({
       [name]: value,
     });
   };
   render() {
+    let { alertUserName, alertPassword } = this.state;
     return (
       <Container>
         <Row>
@@ -58,6 +80,8 @@ class LoginContainer extends Component {
             <LoginComponent
               handleLogin={this.handleLogin}
               handleInput={this.handleInput}
+              alertUserName={alertUserName}
+              alertPassword={alertPassword}
             />
           </Col>
         </Row>

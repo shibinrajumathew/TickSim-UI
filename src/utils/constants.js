@@ -60,6 +60,17 @@ const constants = {
       SELL_AT_MARKET_PRICE: "Sell",
     },
   },
+  ERRORS: {
+    INVALID_USERNAME: "ERROR_001",
+    INVALID_PASSWORD: "ERROR_002",
+    INVALID_ORDER_INPUT: "ERROR_011",
+  },
+  ERROR_MESSAGES: {
+    ERROR_001: "Invalid Username format",
+    ERROR_002: "Invalid Password format",
+    ERROR_011:
+      "Order must be a number greater than zero and can't be empty for limit order.",
+  },
 };
 
 export default constants;
