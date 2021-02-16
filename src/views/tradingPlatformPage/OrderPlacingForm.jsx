@@ -1,13 +1,9 @@
 import React from "react";
 import constants from "../../utils/constants";
 import {
-  Container,
-  Col,
   Row,
   Input,
   Button,
-  Table,
-  Form,
   Alert,
 } from "../common/cssFrameworkComponents/CoreComponents";
 const {
@@ -22,7 +18,7 @@ const {
 } = constants;
 
 const OrderPlacingForm = React.forwardRef((props, ref) => {
-  let { currentPrice, alertOrderField } = props;
+  let { alertOrderField } = props;
   return (
     <Row>
       <form id="orderForm" ref={ref}>
@@ -34,6 +30,7 @@ const OrderPlacingForm = React.forwardRef((props, ref) => {
           step="75"
           min="75"
           required
+          autoComplete="off"
         />
         <Input
           type="number"
@@ -42,6 +39,7 @@ const OrderPlacingForm = React.forwardRef((props, ref) => {
           name="limitPrice"
           min={"1"}
           step="0.5"
+          autoComplete="off"
         />
         <Input
           type="number"
@@ -50,6 +48,7 @@ const OrderPlacingForm = React.forwardRef((props, ref) => {
           name="target"
           step="0.5"
           min="0.5"
+          autoComplete="off"
           pattern="^[^0*][0-9]{0,}"
           required
         />
@@ -60,15 +59,8 @@ const OrderPlacingForm = React.forwardRef((props, ref) => {
           name="stopLoss"
           step="0.5"
           min="0.5"
+          autoComplete="off"
           required
-        />
-        <Input
-          type="number"
-          className="rounded-0 mb-2  bg-dark  border-0 text-light"
-          placeholder="Risk : Reward"
-          name="riskReward"
-          readOnly
-          disabled
         />
 
         <Button

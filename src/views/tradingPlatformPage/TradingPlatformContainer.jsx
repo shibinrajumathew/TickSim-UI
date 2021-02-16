@@ -19,21 +19,38 @@ import {
   Row,
 } from "../common/cssFrameworkComponents/CoreComponents";
 import WebWorkerEnabler from "../../utils/WebWorkerEnabler";
-import dataWebWorker from "../../utils/dataWebWorker";
 import dynamicDataWebWorker from "../../utils/dynamicDataWebWorker";
 import constants from "../../utils/constants";
-import dbData from "../../utils/dummyData";
 import { handleZoom } from "../../utils/chartVisualizationUtil";
 import OrderPlacingForm from "./OrderPlacingForm";
 import StatusInfo from "./StatusInfo";
 import PortfolioTable from "./PortfolioTable";
-import { orderManager, orderSearch } from "../../utils/orderManagerUtil";
+import {
+  orderManager,
+  orderSearchAndModifyQueue,
+  orderSearchAndTrigger,
+} from "../../utils/orderManagerUtil";
+import { getCandleData } from "../../integrations/getDataWithInRange";
+import DropDownMenuComponent from "../common/ui/DropDownMenuComponent";
+import PlayPauseButtonComponent from "../common/ui/PlayPauseButtonComponent";
+import DateComponent from "./DateComponent";
+import TradeNextDayComponent from "../common/ui/TradeNextDayComponent";
 let scales = [];
 const {
-  EVENTS: { BLUR, FOCUS, SUBMIT, NON_PASSIVE_EVENTS },
+  EVENTS: { BLUR, SUBMIT, NON_PASSIVE_EVENTS },
   ORDER_TYPE: { BUY_AT_LIMIT_PRICE, SELL_AT_LIMIT_PRICE },
+  CANDLE_COUNT,
+  TICK_SIM_CONSTANTS: { BUY, SELL },
+  CONSTANT_STRING_MAPPING: { MAPPED_ORDER_TYPE },
+  ERRORS,
+  ERROR_MESSAGES,
+  ORDER_ATTRIBUTES: {
+    STOP_LOSS_PRICE,
+    STOP_LOSS_POINT,
+    TARGET_PRICE,
+    TARGET_POINT,
+  },
 } = constants;
-let singleCandleWebWorkerInstance = undefined;
 let dynamicDataWorkerInstance = undefined;
 let currentPL = 0;
 let fundBalance = 132025.21;
@@ -45,22 +62,34 @@ class TradingPlatformContainer extends Component {
       data: [],
       isInitialData: true,
       nCandle: 25,
-      playChart: true,
+      playChart: false,
       currentPrice: 0,
       instrumentId: "NIFTY50",
       orderTrigger: {},
       orderObj: {},
       orderPosition: [],
       alertOrderField: false,
+      currentTimeScaleKey: "5minute",
+      tradingDate: new Date("06/01/2015"),
+      didCandleEnd: false,
+      doesOrderEditFormDisabled: {},
+      modifiedStopLoss: null,
+      modifiedTarget: null,
+      alertFlagObj: {},
+      keyElement: Date.now(),
+      modifiedOrderObj: {},
     };
     this.zoomHandler = this.zoomHandler.bind(this);
     this.handleOrderFormSubmit = this.handleOrderFormSubmit.bind(this);
+    this.handlePlayPauseButton = this.handlePlayPauseButton.bind(this);
+    this.setTimeScaleKey = this.setTimeScaleKey.bind(this);
+    this.onDateChange = this.onDateChange.bind(this);
+    this.updatedChartOnButtonClick = this.updatedChartOnButtonClick.bind(this);
+    this.toggleOrderEditForm = this.toggleOrderEditForm.bind(this);
+    this.saveModifiedOrder = this.saveModifiedOrder.bind(this);
+
     this.orderFormNode = React.createRef();
   }
-  getSingleCandleDataWebWorkerInstance = () => {
-    if (singleCandleWebWorkerInstance === undefined)
-      singleCandleWebWorkerInstance = new WebWorkerEnabler(dataWebWorker);
-  };
   getDynamicDataWorkerInstance = () => {
     if (dynamicDataWorkerInstance === undefined)
       dynamicDataWorkerInstance = new WebWorkerEnabler(dynamicDataWebWorker);
@@ -71,16 +100,9 @@ class TradingPlatformContainer extends Component {
       dynamicDataWorkerInstance = undefined;
     }
   };
-  stopSingleCandleDataWebWorkerInstance = () => {
-    if (singleCandleWebWorkerInstance !== undefined) {
-      singleCandleWebWorkerInstance.terminate();
-      singleCandleWebWorkerInstance = undefined;
-    }
-  };
 
   componentDidMount() {
     window.addEventListener(BLUR, this.pauseChart);
-    window.addEventListener(FOCUS, this.resumeChart);
     const orderFormNode = this.orderFormNode.current;
     orderFormNode.addEventListener(
       SUBMIT,
@@ -92,145 +114,135 @@ class TradingPlatformContainer extends Component {
   }
   componentWillUnmount() {
     const orderFormNode = this.orderFormNode.current;
-    // orderFormNode.removeEventListener(SUBMIT, this.buyOrderByButtonClick);
+    orderFormNode.removeEventListener(SUBMIT, this.handleOrderFormSubmit);
     window.removeEventListener(BLUR, this.pauseChart);
-    window.removeEventListener(FOCUS, this.resumeChart);
+
+    this.stopDynamicDataWorker();
   }
   pauseChart = () => {
     this.setState({ playChart: false });
     this.stopDynamicDataWorker();
-    this.stopSingleCandleDataWebWorkerInstance();
     // this.pauseChart();
   };
   //  To play chart on foreground
   resumeChart = () => {
-    // this.resumeChart();
-
     this.setState({ playChart: true }, () => {
       this.chartDraw();
     });
   };
-  chartDraw = () => {
-    let { data, nCandle, tempData, playChart, totalFilledCandles } = this.state;
-    let lastCandle = totalFilledCandles || nCandle;
+  chartDraw = async () => {
+    let {
+      data,
+      nCandle,
+      tempData,
+      playChart,
+      totalFilledCandles,
+      currentTimeScaleKey,
+      tradingDate,
+    } = this.state;
+    const dbData = await getCandleData(currentTimeScaleKey, tradingDate);
+    if (dbData.length > 0) {
+      nCandle =
+        dbData.length - CANDLE_COUNT[currentTimeScaleKey].dayCandleCount;
+      let lastCandle = totalFilledCandles || nCandle;
+      data = dbData.slice(0, lastCandle);
+      let currentPrice = data[lastCandle - 1].close;
+      this.setState({ data, tempData, currentPrice, nCandle });
+      //dynamic data feed
+      let dbDataLength = dbData.length;
+      let candleSpeedInSec = 3;
+      let lastIndexAfterSlice = data.length - 1;
 
-    data = dbData.slice(0, lastCandle);
-    let currentPrice = data[lastCandle - 1].close;
-    this.setState({ data, tempData, currentPrice });
-    //dynamic data feed
-    let dbDataLength = dbData.length;
-    let candleSpeedInSec = 4;
-    let lastIndexAfterSlice = data.length - 1;
+      let candleSpeedInMilSec = candleSpeedInSec * 1000;
+      let dynamicCandleSpeedInMilSec = candleSpeedInMilSec; //always keep speed greater than 1 second
+      //To avoid webworker running background on focus
 
-    let candleSpeedInMilSec = candleSpeedInSec * 1000;
-    let dynamicCandleSpeedInMilSec = candleSpeedInMilSec * 0.251; //always keep speed greater than 1 sec
-    //To avoid webworker running background on focus
-    if (data.length === dbDataLength) {
-      return;
-    }
-    if (singleCandleWebWorkerInstance === undefined)
-      this.getSingleCandleDataWebWorkerInstance();
-
-    singleCandleWebWorkerInstance.postMessage({
-      candleSpeedInMilSec,
-      dbData,
-      lastIndexAfterSlice,
-    });
-    singleCandleWebWorkerInstance.onmessage = (e) => {
-      let {
-        data: { candleData, index },
-      } = e;
       // let { data, tempData } = this.state;
-      let { high, low, open, close, date } = candleData;
-      //dynamic candle data
-      let firstDynamicCandle = {
-        date,
-        open,
-        close: low,
-        high: open,
-        low,
-      };
-      let secondDynamicCandle = {
-        ...firstDynamicCandle,
-        ...{ close: high, high },
-      };
-      let thirdDynamicCandle = { ...secondDynamicCandle, ...{ close } };
+      let index = lastIndexAfterSlice + 1;
 
-      let dynamicData = [
-        firstDynamicCandle,
-        secondDynamicCandle,
-        thirdDynamicCandle,
-      ];
       if (dynamicDataWorkerInstance === undefined)
         this.getDynamicDataWorkerInstance();
 
       this.setState({ isInitialData: false });
       dynamicDataWorkerInstance.postMessage({
-        dynamicData,
         dynamicCandleSpeedInMilSec,
         index,
       });
       dynamicDataWorkerInstance.onmessage = (e) => {
         let {
-          data: { dynamicCandleData, dynamicCandleCounter, index },
+          data: { dynamicCandleCounter, index },
         } = e;
-        if (dynamicCandleCounter === 0) {
-          data = [...data, dynamicCandleData];
-        }
-        if (dynamicCandleCounter > 0) {
-          data[index] = dynamicCandleData;
-        }
-        if (dynamicCandleCounter >= 2) {
-          totalFilledCandles = data.length;
-          this.stopDynamicDataWorker();
-          if (playChart) {
-            if (totalFilledCandles === dbDataLength)
-              this.stopSingleCandleDataWebWorkerInstance();
-          } else {
-            this.stopSingleCandleDataWebWorkerInstance();
-          }
-        }
-
         let {
           orderObj,
+          modifiedOrderObj,
           instrumentId,
           prevPrice,
           currentPrice,
           orderTrigger,
           orderPosition,
         } = this.state;
+        if (data.length === dbDataLength) {
+          playChart = false;
+          this.setState({
+            didCandleEnd: true,
+            playChart,
+          });
+        }
 
-        prevPrice = currentPrice;
-        currentPrice = dynamicCandleData.close;
-        // console.log(
-        //   "orderObj, orderTrigger",
-        //   orderObj,
-        //   orderTrigger,
-        // );
+        if (playChart) {
+          let { high, low, open, close, date } = dbData[index];
+          //dynamic candle data
+          let firstDynamicCandle = {
+            date,
+            open,
+            close: low,
+            high: open,
+            low,
+          };
+          let secondDynamicCandle = {
+            ...firstDynamicCandle,
+            ...{ close: high, high },
+          };
+          let thirdDynamicCandle = { ...secondDynamicCandle, ...{ close } };
+
+          let dynamicData = [
+            firstDynamicCandle,
+            secondDynamicCandle,
+            thirdDynamicCandle,
+          ];
+          if (dynamicCandleCounter < 3) {
+            const dynamicCandleData = dynamicData[dynamicCandleCounter];
+            prevPrice = currentPrice;
+            currentPrice = dynamicCandleData.close;
+            if (dynamicCandleCounter === 0) {
+              data = [...data, dynamicCandleData];
+            }
+            if (dynamicCandleCounter > 0) {
+              data[index] = dynamicCandleData;
+            }
+            if (dynamicCandleCounter >= 2) {
+              totalFilledCandles = data.length;
+            }
+          }
+        } else {
+          this.stopDynamicDataWorker();
+          this.setState({ playChart: false });
+        }
         if (
           Object.keys(orderObj).length > 0 &&
           orderObj.constructor === Object &&
           Object.keys(orderTrigger).length > 0 &&
           orderTrigger.constructor === Object
         ) {
-          // console.log(
-          //   " orderObj, orderTrigger, prevPrice, currentPrice::::",
-          //   orderObj,
-          //   orderTrigger,
-          //   orderPosition,
-          //   prevPrice,
-          //   currentPrice
-          // );
-          const response = orderSearch(
+          const response = orderSearchAndTrigger(
             orderObj,
             orderTrigger,
             instrumentId,
             prevPrice,
-            currentPrice
+            currentPrice,
+            modifiedOrderObj
           );
-          console.log("inside order search container response::>", response);
-          orderObj = response.updatedOrderObj;
-          orderTrigger = response.updatedOrderTrigger;
+          ({ orderObj, orderTrigger, modifiedOrderObj } = response);
         }
 
         this.setState({
@@ -241,9 +253,10 @@ class TradingPlatformContainer extends Component {
           orderObj,
           orderTrigger,
           orderPosition,
+          modifiedOrderObj,
         });
       };
-    };
+    }
   };
   zoomHandler(
     event,
@@ -315,8 +328,20 @@ class TradingPlatformContainer extends Component {
       numberOnlyRegex.test(target) &&
       numberOnlyRegex.test(stopLoss);
 
-    if (orderType === BUY_AT_LIMIT_PRICE || orderType === SELL_AT_LIMIT_PRICE)
+    if (orderType === BUY_AT_LIMIT_PRICE || orderType === SELL_AT_LIMIT_PRICE) {
       isValidInput = isValidInput && numberOnlyRegex.test(limitPrice);
+      let mappedOrderType = MAPPED_ORDER_TYPE[orderType];
+      switch (mappedOrderType) {
+        case BUY:
+          isValidInput = limitPrice >= currentPrice;
+          break;
+        case SELL:
+          isValidInput = limitPrice <= currentPrice;
+          break;
+        default:
+          break;
+      }
+    }
     //process order if valid else alert on order form
     if (isValidInput) {
       response = orderManager(
@@ -332,9 +357,11 @@ class TradingPlatformContainer extends Component {
       );
 
       const { updatedOrderObj, updatedTriggerObj } = response;
+      let modifiedOrderObj = JSON.parse(JSON.stringify(updatedOrderObj));
       this.setState({
         alertOrderField: false,
         orderObj: updatedOrderObj,
+        modifiedOrderObj,
         orderTrigger: updatedTriggerObj,
       });
     } else {
@@ -345,12 +372,176 @@ class TradingPlatformContainer extends Component {
   }
   //To update pl in paper trading page
   updatePL(pL) {
-    console.log("update pl inside container", pL);
     currentPL = parseFloat(pL);
     fundBalance = parseFloat(fundBalance) + currentPL;
     fundBalance = fundBalance.toFixed(2);
   }
+  handlePlayPauseButton = () => {
+    const { playChart } = this.state;
+    if (playChart) {
+      this.pauseChart();
+    } else {
+      this.resumeChart();
+    }
+  };
 
+  setTimeScaleKey = (currentTimeScaleKey) => {
+    this.setState({ currentTimeScaleKey });
+  };
+  onDateChange = (tradingDate) => {
+    this.setState({ tradingDate });
+  };
+  updatedChartOnButtonClick = () => {
+    let { tradingDate } = this.state;
+
+    let nextDate = new Date(tradingDate);
+    let oneDayTime = 24 * 60 * 60 * 1000;
+    let totalDays = oneDayTime * 1;
+    nextDate.setTime(nextDate.getTime() + totalDays);
+    tradingDate = nextDate;
+    this.setState(
+      {
+        nCandle: 25,
+        data: [],
+        playChart: false,
+        didCandleEnd: false,
+        tradingDate,
+        totalFilledCandles: 0,
+      },
+      () => {
+        this.chartDraw();
+      }
+    );
+  };
+  modifyOrder = (e, instrumentId, orderId, orderType, limitPrice, index) => {
+    let {
+      target: { name: modifiedPriceType, value: modifiedValue },
+    } = e;
+    let { modifiedOrderObj } = this.state;
+    modifiedValue = parseFloat(modifiedValue);
+    const { currentPrice, alertFlagObj } = this.state;
+    const numberOnlyRegex = /^\d*\.?\d*$/;
+    let isValidPrice = numberOnlyRegex.test(modifiedValue);
+    let mappedOrderType = MAPPED_ORDER_TYPE[orderType];
+    let {
+      STOP_LOSS_MUST_BE_LESS_THAN_LTP,
+      STOP_LOSS_MUST_BE_GREATER_THAN_LTP,
+    } = ERRORS;
+    let alertInfo = "";
+    let pricePointType = TARGET_POINT;
+    switch (true) {
+      case mappedOrderType === BUY && modifiedPriceType === STOP_LOSS_PRICE:
+        isValidPrice = isValidPrice && modifiedValue <= currentPrice;
+        alertInfo = `${STOP_LOSS_MUST_BE_LESS_THAN_LTP} : ${ERROR_MESSAGES[STOP_LOSS_MUST_BE_LESS_THAN_LTP]}`;
+        pricePointType = STOP_LOSS_POINT;
+        break;
+      case mappedOrderType === SELL && modifiedPriceType === STOP_LOSS_PRICE:
+        isValidPrice = isValidPrice && modifiedValue >= currentPrice;
+        alertInfo = `${STOP_LOSS_MUST_BE_GREATER_THAN_LTP} : ${ERROR_MESSAGES[STOP_LOSS_MUST_BE_GREATER_THAN_LTP]}`;
+        pricePointType = STOP_LOSS_POINT;
+        break;
+      default:
+        break;
+    }
+    if (isValidPrice) {
+      alertFlagObj[index] = {
+        isAlertEnabled: false,
+        modifiedPriceType,
+        alertInfo,
+      };
+      modifiedOrderObj[instrumentId][orderId][
+        modifiedPriceType
+      ] = modifiedValue;
+      console.log("modifiedValue", modifiedValue);
+      if (
+        modifiedPriceType === TARGET_PRICE ||
+        modifiedPriceType === STOP_LOSS_PRICE
+      ) {
+        let pricePoint = Math.abs(limitPrice - modifiedValue).toFixed(2);
+        modifiedOrderObj[instrumentId][orderId][pricePointType] = pricePoint;
+      }
+    } else {
+      alertFlagObj[index] = {
+        isAlertEnabled: true,
+        modifiedPriceType,
+        alertInfo,
+      };
+    }
+
+    //TO DO alert on ui using any state, add to orderQueue, orderObj
+    this.setState({ alertFlagObj, modifiedOrderObj });
+  };
+  toggleOrderEditForm = (buttonType, index, instrumentId, orderId) => {
+    let { doesOrderEditFormDisabled, modifiedOrderObj, orderObj } = this.state;
+    doesOrderEditFormDisabled[index] = false;
+    let keyElement = "";
+
+    if (buttonType === "saveButton") {
+      doesOrderEditFormDisabled[index] = true;
+      this.saveModifiedOrder(index, instrumentId, orderId);
+    }
+    if (buttonType === "cancelButton") {
+      doesOrderEditFormDisabled[index] = true;
+      keyElement = Date.now();
+      modifiedOrderObj = {};
+      modifiedOrderObj = JSON.parse(JSON.stringify(orderObj));
+    }
+    this.setState({
+      doesOrderEditFormDisabled,
+      keyElement,
+      modifiedOrderObj,
+    });
+  };
+  saveModifiedOrder(index, instrumentId, orderId) {
+    let { orderObj, modifiedOrderObj, orderTrigger, alertFlagObj } = this.state;
+    let { isAlertEnabled } = alertFlagObj[index];
+    const isValidModification = !isAlertEnabled;
+
+    if (isValidModification && orderObj[instrumentId]) {
+      let { limitPrice, stopLossPrice, targetPrice } = orderObj[instrumentId][
+        orderId
+      ];
+      let {
+        limitPrice: modifiedLimitPrice,
+        stopLossPrice: modifiedStopLossPrice,
+        stopLossPoint: modifiedStopLossPoint,
+        targetPrice: modifiedTargetPrice,
+        targetPoint: modifiedTargetPoint,
+      } = modifiedOrderObj[instrumentId][orderId];
+      console.log(
+        "modifiedOrderObj[instrumentId][orderId]",
+        modifiedOrderObj[instrumentId][orderId],
+        modifiedLimitPrice,
+        limitPrice
+      );
+      let newPriceArray = [];
+      let oldPriceArray = [];
+      if (modifiedLimitPrice !== limitPrice) {
+        orderObj[instrumentId][orderId].limitPrice = modifiedLimitPrice;
+        newPriceArray = [modifiedLimitPrice];
+        oldPriceArray = [limitPrice];
+      }
+      if (modifiedStopLossPrice !== stopLossPrice) {
+        orderObj[instrumentId][orderId].stopLossPrice = modifiedStopLossPrice;
+        orderObj[instrumentId][orderId].stopLossPoint = modifiedStopLossPoint;
+        newPriceArray = [...newPriceArray, modifiedStopLossPrice];
+        oldPriceArray = [...oldPriceArray, stopLossPrice];
+      }
+      if (modifiedTargetPrice !== targetPrice) {
+        orderObj[instrumentId][orderId].targetPrice = modifiedTargetPrice;
+        orderObj[instrumentId][orderId].targetPoint = modifiedTargetPoint;
+        newPriceArray = [...newPriceArray, modifiedTargetPrice];
+        oldPriceArray = [...oldPriceArray, targetPrice];
+      }
+      let updatedTriggerObj = orderSearchAndModifyQueue(
+        orderTrigger,
+        orderId,
+        newPriceArray,
+        oldPriceArray
+      );
+      this.setState({ orderObj, orderTrigger: updatedTriggerObj });
+    }
+  }
   render() {
     let svgDimension = {
       width: 1020,
@@ -378,11 +569,20 @@ class TradingPlatformContainer extends Component {
       isInitialData,
       nCandle,
       currentPrice,
-      orderObj,
       orderPosition,
       alertOrderField,
+      playChart,
+      currentTimeScaleKey,
+      tradingDate,
+      didCandleEnd,
+      doesOrderEditFormDisabled,
+      alertFlagObj,
+      keyElement,
+      modifiedOrderObj,
+      orderObj,
+      orderTrigger,
     } = this.state;
-    // console.log("orderObj", orderObj);
+    console.log("orderTrigger inside parentL::", orderTrigger);
     return (
       <Container className="mx-auto" fluid>
         {/* <Col className="mt-5 p-0">
@@ -403,26 +603,52 @@ class TradingPlatformContainer extends Component {
             />
           </Col>
           {/* order placing form with status */}
-          <Col xs={2} className="ml-3">
+          <Col xs={2} className="ml-5">
             <OrderPlacingForm
               ref={this.orderFormNode}
               currentPrice={currentPrice}
               alertOrderField={alertOrderField}
             />
-            <StatusInfo
-              currentPrice={currentPrice}
-              currentPL={currentPL}
-              fundBalance={fundBalance}
-            />
+            <Row>
+              <StatusInfo
+                currentPrice={currentPrice}
+                currentPL={currentPL}
+                fundBalance={fundBalance}
+              />
+              <PlayPauseButtonComponent
+                handlePlayPauseButton={this.handlePlayPauseButton}
+                playChart={playChart}
+              />
+              <DropDownMenuComponent
+                setTimeScaleKey={this.setTimeScaleKey}
+                currentTimeScaleKey={currentTimeScaleKey}
+              />
+              <DateComponent
+                tradingDate={tradingDate}
+                onDateChange={this.onDateChange}
+              />
+              <TradeNextDayComponent
+                didCandleEnd={didCandleEnd}
+                updatedChartOnButtonClick={this.updatedChartOnButtonClick}
+              />
+            </Row>
           </Col>
         </Row>
         <Row>
-          <PortfolioTable
-            orderObj={orderObj}
-            orderPosition={orderPosition}
-            currentPrice={currentPrice}
-            updatePL={this.updatePL}
-          />
+          <Col className="ml-1">
+            <PortfolioTable
+              orderPosition={orderPosition}
+              currentPrice={currentPrice}
+              updatePL={this.updatePL}
+              toggleOrderEditForm={this.toggleOrderEditForm}
+              doesOrderEditFormDisabled={doesOrderEditFormDisabled}
+              modifyOrder={this.modifyOrder}
+              alertFlagObj={alertFlagObj}
+              keyElement={keyElement}
+              modifiedOrderObj={modifiedOrderObj}
+              orderObj={orderObj}
+            />
+          </Col>
         </Row>
       </Container>
     );

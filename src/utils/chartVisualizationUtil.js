@@ -27,19 +27,30 @@ const getFormattedDate = (date, prevDate) => {
     }
     return date.getDate();
   }
+  if (prevDate && date.getDate() === prevDate.getDate()) {
+    return getShortTime(date);
+  }
   if (prevDate === null) return getLongYear(date);
   return date.getDate();
 };
 const getShortMonthName = (date) => {
-  let format = d3.utcFormat("%d %b");
+  let format = d3.timeFormat("%d %b");
   return format(date);
 };
-const getShortDate = (date) => {
-  let format = d3.utcFormat("%d %b %Y");
-  return format(date);
-};
+// const getShortDate = (date) => {
+//   let format = d3.timeFormat("%d %b %Y");
+//   return format(date);
+// };
 const getLongYear = (date) => {
-  let format = d3.utcFormat("%d %b %y");
+  let format = d3.timeFormat("%d %b %y");
+  return format(date);
+};
+const getShortTime = (date) => {
+  let format = d3.timeFormat("%H:%M");
+  return format(date);
+};
+const getApiDateFormat = (date) => {
+  let format = d3.timeFormat("%Y-%m-%d");
   return format(date);
 };
 
@@ -328,7 +339,7 @@ const getZoom = (
   let zoom = d3
     .zoom()
     .extent([zoomLeftEnd, zoomRightEnd])
-    .scaleExtent([0.1, 10])
+    .scaleExtent([0.1, 50])
     .translateExtent([dragLeftEnd, dragRightEnd])
     .on("zoom", (e) =>
       zoomHandler(
@@ -435,16 +446,18 @@ function attachKeyPressEvent(
 ) {
   //To Do format below line and separate function
   // Keyboard key press
-  d3.select("#block" + endingId).on("keydown", (e) =>
-    handleKeyPress(
-      e,
-      xAxisLeftEnd,
-      xAxisRightEnd,
-      hLineNode,
-      tLineNode,
-      endingId
+  d3.select("#block" + endingId)
+    .on("keydown", (e) =>
+      handleKeyPress(
+        e,
+        xAxisLeftEnd,
+        xAxisRightEnd,
+        hLineNode,
+        tLineNode,
+        endingId
+      )
     )
-  );
+    .on("keyup", handleKeyRelease);
 }
 function handleKeyPress(
   e,
@@ -484,6 +497,9 @@ function handleKeyPress(
   }
 }
 
+function handleKeyRelease(e) {
+  // console.log("key relased key is", e.keyCode);
+}
 function drawHLine(hLineNode, hLineDataSet) {
   hLineNode = hLineNode
     .append("g")
@@ -643,4 +659,5 @@ export {
   initialZoom,
   handleZoom,
   getNewScales,
+  getApiDateFormat,
 };

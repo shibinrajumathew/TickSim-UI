@@ -23,9 +23,8 @@ import Rectangle from "../../common/svgCoreComponents/Rectangle";
 import SVGComponent from "../../common/svgCoreComponents/SVGComponent";
 import SVGGroupComponent from "../../common/svgCoreComponents/SVGGroupComponent";
 let svgDimension = {};
-let candleData;
 const {
-  EVENTS: { CONTEXT_MENU, BLUR, FOCUS, NON_PASSIVE_EVENTS },
+  EVENTS: { CONTEXT_MENU, NON_PASSIVE_EVENTS },
 } = constants;
 
 class ChartContainer extends Component {
@@ -91,14 +90,9 @@ class ChartContainer extends Component {
       yAxisBottomEnd,
       endingId,
     } = this.state;
-    const svgId = endingId ? "#svgMainNode" + endingId : "";
+    // const svgId = endingId ? "#svgMainNode" + endingId : "";
 
-    let svgMouse = svgMouseMove(
-      endingId,
-      position,
-      xAxisLeftEnd,
-      xAxisRightEnd
-    );
+    svgMouseMove(endingId, position, xAxisLeftEnd, xAxisRightEnd);
 
     // Scale
     let xScale = getXScale(totalCandleCount, xAxisLeftEnd, xAxisRightEnd);

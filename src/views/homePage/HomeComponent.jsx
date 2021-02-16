@@ -12,12 +12,12 @@
  * Copyright (c) 2020 VVEEO
  */
 import React from "react";
-import { tsComponentState } from "../../utils/storeManager";
+// import { tsComponentState } from "../../utils/storeManager";
 
 // import { incrementX1Only } from "../common/stateManagers/actions/xRangeActions";
 
 const HomeComponent = (props) => {
-  const xRange = tsComponentState((state) => state.xRange);
+  // const xRange = tsComponentState((state) => state.xRange);
   // const dispatch = tsComponentDispatch();
   return (
     <div>

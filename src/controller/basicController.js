@@ -18,7 +18,6 @@ import {
   PrivateComponent,
   UnAuthenticatedComponent,
 } from "../utils/route";
-import MultipleChartContainer from "../views/features/chart/MultipleChartContainer";
 import HomeContainer from "../views/homePage/HomeContainer";
 import LoginContainer from "../views/loginPage/LoginContainer";
 import TradingPlatformContainer from "../views/tradingPlatformPage/TradingPlatformContainer";
@@ -42,12 +41,6 @@ function basicController() {
   ];
   // NOTE: PRIVATE components Attributes eg: demo trading
   let PrivateComponentAttributes = [
-    {
-      component: MultipleChartContainer,
-      path: "/tradingPlatform",
-      exact: true,
-      redirectPath: "/login",
-    },
     {
       component: TradingPlatformContainer,
       path: "/tradeOnline",

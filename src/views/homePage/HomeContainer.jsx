@@ -15,8 +15,8 @@ import React, { Component } from "react";
 import HomeComponent from "./HomeComponent";
 class HomeContainer extends Component {
   render() {
-    const { storeState, incrementXRange, decrementXRange } = this.props;
-    let { xRange } = storeState;
+    const { incrementXRange, decrementXRange } = this.props;
+    // let { xRange } = storeState;
     return (
       <div
         onWheel={(e) => {

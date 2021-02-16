@@ -1,21 +1,14 @@
 import React from "react";
-import {
-  Container,
-  Col,
-  Row,
-  Input,
-  Button,
-  Table,
-} from "../common/cssFrameworkComponents/CoreComponents";
+// import { Row } from "../common/cssFrameworkComponents/CoreComponents";
 
 const StatusInfo = (props) => {
-  const { currentPrice, currentPL, fundBalance } = props;
+  const { currentPrice } = props;
   return (
     <React.Fragment>
-      <Row className="mt-5">
-        <h5>{`Current Price:${currentPrice.toFixed(2) || 0} `}</h5>
-      </Row>
-      <Row className="mt-2">
+      <p className="text-white text-center m-2">{`Current Price : ${
+        currentPrice.toFixed(2) || 0
+      } `}</p>
+      {/* <Row className="mt-2">
         <h5>{"P&L: "}</h5>
         <h5 className={currentPL > 0 ? "text-success" : "text-danger"}>
           {" "}
@@ -28,7 +21,7 @@ const StatusInfo = (props) => {
           {" "}
           &nbsp;{fundBalance}
         </h5>
-      </Row>
+      </Row> */}
     </React.Fragment>
   );
 };
