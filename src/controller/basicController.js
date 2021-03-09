@@ -18,7 +18,7 @@ import {
   PrivateComponent,
   UnAuthenticatedComponent,
 } from "../utils/route";
-import HomeContainer from "../views/homePage/HomeContainer";
+import HomeContainer from "../views/homePage/HomePageContainer";
 import LoginContainer from "../views/loginPage/LoginContainer";
 import TradingPlatformContainer from "../views/tradingPlatformPage/TradingPlatformContainer";
 

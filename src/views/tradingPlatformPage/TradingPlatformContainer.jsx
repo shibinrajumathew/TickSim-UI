@@ -30,7 +30,10 @@ import {
   orderSearchAndModifyQueue,
   orderSearchAndTrigger,
 } from "../../utils/orderManagerUtil";
-import { getCandleData } from "../../integrations/getDataWithInRange";
+import {
+  getCandleData,
+  getNextDayCandleData,
+} from "../../integrations/getDataWithInRange";
 import DropDownMenuComponent from "../common/ui/DropDownMenuComponent";
 import PlayPauseButtonComponent from "../common/ui/PlayPauseButtonComponent";
 import DateComponent from "./DateComponent";
@@ -39,7 +42,6 @@ let scales = [];
 const {
   EVENTS: { BLUR, SUBMIT, NON_PASSIVE_EVENTS },
   ORDER_TYPE: { BUY_AT_LIMIT_PRICE, SELL_AT_LIMIT_PRICE },
-  CANDLE_COUNT,
   TICK_SIM_CONSTANTS: { BUY, SELL },
   CONSTANT_STRING_MAPPING: { MAPPED_ORDER_TYPE },
   ERRORS,
@@ -64,13 +66,14 @@ class TradingPlatformContainer extends Component {
       nCandle: 25,
       playChart: false,
       currentPrice: 0,
+      prevClose: 0,
       instrumentId: "NIFTY50",
       orderTrigger: {},
       orderObj: {},
       orderPosition: [],
       alertOrderField: false,
       currentTimeScaleKey: "5minute",
-      tradingDate: new Date("06/01/2015"),
+      tradingDate: new Date("02/09/2015"),
       didCandleEnd: false,
       doesOrderEditFormDisabled: {},
       modifiedStopLoss: null,
@@ -78,6 +81,7 @@ class TradingPlatformContainer extends Component {
       alertFlagObj: {},
       keyElement: Date.now(),
       modifiedOrderObj: {},
+      isTradeNextDayButtonClicked: false,
     };
     this.zoomHandler = this.zoomHandler.bind(this);
     this.handleOrderFormSubmit = this.handleOrderFormSubmit.bind(this);
@@ -139,15 +143,41 @@ class TradingPlatformContainer extends Component {
       totalFilledCandles,
       currentTimeScaleKey,
       tradingDate,
+      isTradeNextDayButtonClicked,
     } = this.state;
-    const dbData = await getCandleData(currentTimeScaleKey, tradingDate);
+    let initialDynamicDataIndex = 0;
+    let totalCandleCount = 1;
+    let dbData = {};
+    if (isTradeNextDayButtonClicked)
+      ({
+        candles: dbData,
+        initialDynamicDataIndex,
+        totalCandleCount,
+      } = await getNextDayCandleData(currentTimeScaleKey, tradingDate));
+    else {
+      ({
+        candles: dbData,
+        initialDynamicDataIndex,
+        totalCandleCount,
+      } = await getCandleData(currentTimeScaleKey, tradingDate));
+    }
     if (dbData.length > 0) {
-      nCandle =
-        dbData.length - CANDLE_COUNT[currentTimeScaleKey].dayCandleCount;
+      let tradingDate = dbData[initialDynamicDataIndex].date;
+      console.log("tradingDate", tradingDate);
+      tradingDate = new Date(tradingDate);
+      nCandle = dbData.length - totalCandleCount;
       let lastCandle = totalFilledCandles || nCandle;
       data = dbData.slice(0, lastCandle);
       let currentPrice = data[lastCandle - 1].close;
-      this.setState({ data, tempData, currentPrice, nCandle });
+      this.setState({
+        data,
+        tradingDate,
+        tempData,
+        currentPrice,
+        nCandle,
+        prevClose: dbData[nCandle - 1].close,
+        isTradeNextDayButtonClicked: false,
+      });
       //dynamic data feed
       let dbDataLength = dbData.length;
       let candleSpeedInSec = 3;
@@ -392,21 +422,21 @@ class TradingPlatformContainer extends Component {
     this.setState({ tradingDate });
   };
   updatedChartOnButtonClick = () => {
-    let { tradingDate } = this.state;
+    // let { tradingDate } = this.state;
 
-    let nextDate = new Date(tradingDate);
-    let oneDayTime = 24 * 60 * 60 * 1000;
-    let totalDays = oneDayTime * 1;
-    nextDate.setTime(nextDate.getTime() + totalDays);
-    tradingDate = nextDate;
+    // let nextDate = new Date(tradingDate);
+    // let oneDayTime = 24 * 60 * 60 * 1000;
+    // let totalDays = oneDayTime * 1;
+    // nextDate.setTime(nextDate.getTime() + totalDays);
+    // tradingDate = nextDate;
     this.setState(
       {
         nCandle: 25,
         data: [],
         playChart: false,
         didCandleEnd: false,
-        tradingDate,
         totalFilledCandles: 0,
+        isTradeNextDayButtonClicked: true,
       },
       () => {
         this.chartDraw();
@@ -569,6 +599,7 @@ class TradingPlatformContainer extends Component {
       isInitialData,
       nCandle,
       currentPrice,
+      prevClose,
       orderPosition,
       alertOrderField,
       playChart,
@@ -580,9 +611,7 @@ class TradingPlatformContainer extends Component {
       keyElement,
       modifiedOrderObj,
       orderObj,
-      orderTrigger,
     } = this.state;
-    console.log("orderTrigger inside parentL::", orderTrigger);
     return (
       <Container className="mx-auto" fluid>
         {/* <Col className="mt-5 p-0">
@@ -611,6 +640,7 @@ class TradingPlatformContainer extends Component {
             />
             <Row>
               <StatusInfo
+                prevClose={prevClose}
                 currentPrice={currentPrice}
                 currentPL={currentPL}
                 fundBalance={fundBalance}

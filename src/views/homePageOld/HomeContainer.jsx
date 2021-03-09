@@ -13,6 +13,10 @@
  */
 import React, { Component } from "react";
 import HomeComponent from "./HomeComponent";
+
+import "../../../styles/chartStyle.css";
+// eslint-disable-next-line no-unused-vars
+import $ from "jquery";
 class HomeContainer extends Component {
   render() {
     const { incrementXRange, decrementXRange } = this.props;

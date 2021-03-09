@@ -12,13 +12,13 @@ const DateComponent = (props) => {
           <CustomDatePicker
             id="endDate"
             format={"y-MM-dd"}
-            maxDate={new Date("12/31/2015")}
-            minDate={new Date("06/01/2015")}
+            maxDate={new Date("30/06/2015")}
+            minDate={new Date("09/01/2015")}
             value={tradingDate}
             onChange={onDateChange}
             calendarIcon={null}
             className="my-1"
-            disabled
+            // disabled
           />
         </div>
       </Row>

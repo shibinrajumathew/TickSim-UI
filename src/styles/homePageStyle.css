@@ -1,0 +1,84 @@
+body {
+  position: relative;
+  background-color: black;
+}
+/* .affix {
+  top: 0;
+  width: 100%;
+  z-index: 9999 !important;
+} */
+.topHeading {
+  background-color: #fff;
+  color: #000;
+  font-size: 18px;
+}
+.navbar {
+  margin-bottom: 0px;
+}
+/* 
+.affix ~ .container-fluid {
+  position: relative;
+  top: 50px;
+} */
+#home {
+  padding-top: 40px;
+  height: 500px;
+  color: #fff;
+  background-color: #1e88e5;
+  background-image: url("../assets/images/candleStickPic.png");
+}
+#section2 {
+  padding-top: 50px;
+  height: 500px;
+  color: #000;
+  background-color: #fff;
+}
+#section3 {
+  padding-top: 50px;
+  height: 500px;
+  color: #fff;
+}
+#section41 {
+  padding-top: 50px;
+  height: 500px;
+  color: #fff;
+  background-color: #00bcd4;
+}
+#section42 {
+  padding-top: 50px;
+  height: 500px;
+  color: #fff;
+  background-color: #009688;
+}
+.footer {
+  background-color: white;
+  padding: 25px;
+}
+.footer ul {
+  text-align: left;
+  padding-left: 0px;
+  text-decoration: none;
+  color: black;
+}
+.footer ul a {
+  text-decoration: none;
+  color: black;
+}
+.footer ul a:hover {
+  text-decoration: none;
+}
+.copyrightBox {
+  text-align: center;
+  padding: 10px;
+}
+.affix {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  opacity: 1;
+}
+
+.affix-top {
+  position: static;
+  opacity: 0.8;
+}

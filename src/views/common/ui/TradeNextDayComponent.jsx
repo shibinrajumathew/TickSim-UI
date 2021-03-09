@@ -9,7 +9,7 @@ const TradeNextDayComponent = (props) => {
         color="primary"
         className="rounded-0 col-12  border-0 mb-2"
         onClick={updatedChartOnButtonClick}
-        disabled={!didCandleEnd}
+        // disabled={!didCandleEnd}
       >
         Trade Next Day
       </Button>
