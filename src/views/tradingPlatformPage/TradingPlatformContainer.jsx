@@ -73,7 +73,7 @@ class TradingPlatformContainer extends Component {
       orderPosition: [],
       alertOrderField: false,
       currentTimeScaleKey: "5minute",
-      tradingDate: new Date("02/09/2015"),
+      tradingDate: new Date("02/05/2015"), // format: mm/dd/yyyy
       didCandleEnd: false,
       doesOrderEditFormDisabled: {},
       modifiedStopLoss: null,

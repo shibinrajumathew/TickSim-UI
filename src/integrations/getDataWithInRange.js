@@ -2,6 +2,7 @@ import httpClient from "../utils/httpClient";
 import { getApiDateFormat } from "../utils/chartVisualizationUtil";
 
 const getCandleData = (currentTimeScaleKey, tradingDate) => {
+  console.log("inside get candle data", tradingDate);
   const endingDate = new Date(tradingDate);
   const startingDate = new Date(tradingDate);
 

@@ -14,6 +14,9 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Provider } from "react-redux";
+import "core-js/stable";
+import "regenerator-runtime/runtime";
+import "@babel/polyfill";
 import "bootstrap/dist/css/bootstrap.css";
 import { store } from "./utils/storeManager";
 import App from "./controller/basicController";
