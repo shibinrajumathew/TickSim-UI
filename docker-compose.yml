@@ -6,11 +6,10 @@ services:
       dockerfile: Dockerfile
     image: ticksim_Image
     volumes:
-      - /vveeo_apps/dev/ui:/dev_folder/
       - /vveeo_apps/release/ui:/usr/share/nginx/html/
     networks:
       - ticksim_ui_network
     ports:
-      - "3000:3000"
+      - "3000:80"
 networks:
   ticksim_ui_network:
