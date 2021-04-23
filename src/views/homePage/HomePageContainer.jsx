@@ -8,6 +8,7 @@ class HomePageContainer extends Component {
 
   render() {
     let currentYear = new Date().getFullYear();
+    console.log("ENV variable::", process.env.MS_HOST);
     return (
       <div>
         <div class="container-fluid topHeading">
