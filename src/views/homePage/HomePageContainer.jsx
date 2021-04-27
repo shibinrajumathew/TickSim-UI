@@ -8,7 +8,7 @@ class HomePageContainer extends Component {
 
   render() {
     let currentYear = new Date().getFullYear();
-    console.log("ENV variable::UI", process.env.UI_ENV);
+    console.log("ENV variable::UI", process.env, process.env.UI_ENV);
     return (
       <div>
         <div class="container-fluid topHeading">
