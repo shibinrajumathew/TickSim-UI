@@ -1,11 +1,12 @@
 import axios from "axios";
 
 // const baseURL = "http://localhost:3001";
+const { HTTP_PROTOCOL, MS_BASE_URL } = process.env;
 const {
   location: { hostname },
 } = window;
 
-const baseURL = "http://" + hostname + ":3001";
+const baseURL = HTTP_PROTOCOL + MS_BASE_URL || "http://" + hostname + ":3001";
 
 const instance = axios.create({
   baseURL,
