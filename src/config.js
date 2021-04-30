@@ -18,5 +18,9 @@ const config = {
   tempData: {
     token: "8d8bcda9-295a-41eb-962e-bf632e33125a",
   },
+  ms: {
+    httpProtocol: process.env.HTTP_PROTOCOL || "http://",
+    baseUrl: process.env.MS_BASE_URL || "localhost:3001",
+  },
 };
 export default config;
