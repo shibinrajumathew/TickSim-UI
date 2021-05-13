@@ -7,7 +7,7 @@ const htmlWebpackPlugin = new HtmlWebpackPlugin({
 });
 const definePlugin = new webpack.DefinePlugin({
   PRODUCTION: JSON.stringify(true),
-  "process.env.UI_ENV": JSON.stringify(process.env.UI_ENV),
+  "process.env.MS_BASE_URL": JSON.stringify(process.env.MS_BASE_URL),
 });
 
 module.exports = {
