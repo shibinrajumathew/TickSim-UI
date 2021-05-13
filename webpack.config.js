@@ -5,9 +5,10 @@ const htmlWebpackPlugin = new HtmlWebpackPlugin({
   template: path.resolve(__dirname, "./public/index.html"),
   filename: "index.html",
 });
+
 const definePlugin = new webpack.DefinePlugin({
   PRODUCTION: JSON.stringify(true),
-  "process.env.MS_BASE_URL": JSON.stringify(process.env.MS_BASE_URL),
+  "process.env": JSON.stringify(process.env),
 });
 
 module.exports = {
