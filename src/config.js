@@ -16,7 +16,7 @@ const config = {
     window.__REDUX_DEVTOOLS_EXTENSION__ &&
     window.__REDUX_DEVTOOLS_EXTENSION__(),
   tempData: {
-    token: "8d8bcda9-295a-41eb-962e-bf632e33125a",
+    token: process.env.REACT_APP_TOKEN_COGNITO,
   },
 };
 export default config;
