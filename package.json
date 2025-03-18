@@ -4,39 +4,39 @@
   "private": true,
   "dependencies": {
     "@babel/polyfill": "^7.12.1",
-    "@testing-library/jest-dom": "^4.2.4",
-    "@testing-library/react": "^9.5.0",
-    "@testing-library/user-event": "^7.2.1",
-    "axios": "^0.21.1",
-    "bootstrap": "^4.5.0",
-    "d3": "^6.2.0",
-    "eslint-config-react-app": "^5.2.1",
-    "react": "^16.13.1",
-    "react-date-picker": "^8.0.6",
-    "react-dom": "^16.13.1",
-    "react-redux": "^7.2.1",
-    "react-router-dom": "^5.2.0",
-    "react-scripts": "^3.4.3",
-    "reactstrap": "^8.4.1",
-    "redux": "^4.0.5",
-    "uglifyjs-webpack-plugin": "^2.2.0"
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.6.1",
+    "axios": "^1.8.3",
+    "bootstrap": "^5.3.3",
+    "d3": "^7.9.0",
+    "eslint-config-react-app": "^7.0.1",
+    "react": "^19.0.0",
+    "react-date-picker": "^11.0.0",
+    "react-dom": "^19.0.0",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.3.0",
+    "react-scripts": "^3.0.1",
+    "reactstrap": "^9.2.3",
+    "redux": "^5.0.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.13.10",
-    "@babel/preset-env": "^7.13.10",
-    "@babel/preset-react": "^7.12.13",
-    "babel-loader": "^8.1.0",
+    "@babel/core": "^7.26.10",
+    "@babel/preset-env": "^7.26.9",
+    "@babel/preset-react": "^7.26.3",
+    "babel-loader": "^10.0.0",
     "svg-inline-loader": "^0.8.2",
-    "webpack": "^4.44.2",
-    "webpack-cli": "^4.5.0",
-    "webpack-dev-server": "^3.11.2"
+    "terser-webpack-plugin": "^5.3.14",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.0"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-	"prodBuild": "webpack --config webpack.config.js --mode production"
+    "prodBuild": "webpack --config webpack.config.js --mode production"
   },
   "eslintConfig": {
     "extends": "react-app"
